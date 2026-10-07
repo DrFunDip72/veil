@@ -291,15 +291,35 @@
     };
 
     function vote(v) {
-      S.swipes.push({ photoId: DECK[S.swipes.length].id, vote: v });
+      const photo = DECK[S.swipes.length];
+      if (!photo) return; // deck already exhausted
+      S.swipes.push({ photoId: photo.id, vote: v });
       save();
       if (S.swipes.length >= DECK.length) { S.tasteDone = true; save(); go('reveal'); }
       else render();
     }
   };
 
+  /* Only one swipe may be in flight at a time.
+   *
+   * Every commit path is deferred behind a ~230ms exit animation. Without a
+   * latch, a second tap inside that window commits twice against the same
+   * card: on the last card that runs off the end of the deck and throws, and
+   * mid-deck it silently records a vote for a photo she never saw — which
+   * quietly corrupts the taste profile with no visible symptom. Cleared on
+   * every render, because a render means the next card is up. */
+  let swipeBusy = false;
+
+  function commitSwipe(commit, v, delay) {
+    if (swipeBusy) return false;
+    swipeBusy = true;
+    setTimeout(() => commit(v), delay);
+    return true;
+  }
+
   /* Animate the top card off-screen, then commit the vote. */
   function flyOut(commit, v) {
+    if (swipeBusy) return;
     const top = $('#deck .swipecard:last-child') || $('#deck .matchcard:last-child');
     if (!top) { commit(v); return; }
     const dir = v === 'pass' ? -1 : 1;
@@ -308,7 +328,7 @@
       ? 'translateY(-700px) rotate(-6deg)'
       : 'translateX(' + dir * 520 + 'px) rotate(' + dir * 18 + 'deg)';
     top.style.opacity = '0';
-    setTimeout(() => commit(v), 230);
+    commitSwipe(commit, v, 230);
   }
 
   /* Pointer-drag swiping, shared by both decks. */
@@ -345,14 +365,14 @@
       if (upSwipe && love) {
         card.style.transform = 'translateY(-700px) rotate(-6deg)';
         card.style.opacity = '0';
-        setTimeout(() => commit('love'), 200);
+        commitSwipe(commit, 'love', 200);
         return;
       }
       if (Math.abs(dx) > 95) {
         const dir = dx > 0 ? 1 : -1;
         card.style.transform = 'translateX(' + dir * 560 + 'px) rotate(' + dir * 20 + 'deg)';
         card.style.opacity = '0';
-        setTimeout(() => commit(dir > 0 ? 'like' : 'pass'), 200);
+        commitSwipe(commit, dir > 0 ? 'like' : 'pass', 200);
         return;
       }
       card.style.transform = '';
@@ -500,6 +520,7 @@
     };
 
     function vote(v) {
+      if (!queue.length) return; // queue already drained
       const id = queue[0].photographer.id;
       if (v === 'pass') { S.seen[id] = 'pass'; }
       else {
@@ -1130,6 +1151,7 @@
 
   function render() {
     keyHandler = null;
+    swipeBusy = false;
     const def = screens[route.name]();
 
     const navHTML = def.nav === false ? '' : navBar();
