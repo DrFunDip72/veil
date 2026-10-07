@@ -1,0 +1,12 @@
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
+
+# Real photographer portfolios are not committed (see USE_LOCAL_PHOTOS in data.js)
+photos/
