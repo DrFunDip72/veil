@@ -2,7 +2,15 @@
 
 *One-line pitch: a dating-app-style PWA where brides swipe wedding photos **blind** — no names, no prices, no follower counts — and then get shown the Utah photographers whose work they already picked.*
 
-**Status:** working prototype, 2026-10-06. Installable PWA, runs entirely client-side, no backend.
+**Live:** <https://veilphoto.vercel.app>
+**Repo:** <https://github.com/DrFunDip72/veil> — pushes to `main` auto-deploy to production.
+
+**Status:** working prototype, 2026-10-07. Installable PWA, runs entirely client-side, no backend.
+
+> The exact name `veil.vercel.app` was already taken by an unrelated app, so production
+> is `veilphoto.vercel.app`. `veilweddings`, `veilco` and `veilutah` were also free at
+> the time of writing if you'd rather switch — it's one domain change in the Vercel
+> project settings, no code change.
 
 ---
 
@@ -67,7 +75,9 @@ On a desktop browser the app is deliberately drawn inside a phone frame. The fra
 ### Tests
 
 ```bash
-node test/engine.test.js     # matching, pricing, travel, availability, edge cases
+node test/engine.test.js                          # matching, pricing, travel, availability, edge cases
+node tools/check-pwa.js https://veilphoto.vercel.app   # installability: manifest, icons, precache
+node tools/smoke.js      https://veilphoto.vercel.app   # drives a real browser against a live origin
 ```
 
 Three simulated personas (warm-film-documentary, bright-clean-editorial, dark-moody-epic) must each rank a photographer from their own style family first.
@@ -79,7 +89,16 @@ node tools/gen-icons.js      # regenerates the PNG icons from scratch, no deps
 node tools/shoot.js          # screenshots every screen into screens/
 ```
 
-`shoot.js` needs Chrome already running with `--remote-debugging-port=9222`.
+`shoot.js` and `smoke.js` need Chrome already running with `--remote-debugging-port=9222`:
+
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --headless=new `
+  --remote-debugging-port=9222 --user-data-dir="$env:TEMP\veil-chrome" --window-size=1180,1050
+```
+
+`smoke.js` checks what only breaks on a real origin: service worker activation, offline
+replay from cache, a full swipe-to-message run, and a regression test that hammers the
+swipe button faster than the exit animation to prove votes are never double-committed.
 
 ---
 
@@ -91,7 +110,7 @@ node tools/shoot.js          # screenshots every screen into screens/
 | `engine.js` | Matching, pricing, travel and availability maths. No DOM. |
 | `app.js` | Screens, routing, swipe gestures |
 | `styles.css` | Design system + the desktop phone frame |
-| `sw.js` | Service worker — shell cache-first, photos in a separate capped cache |
+| `sw.js` | Service worker — shell network-first, photos cache-first in a separate capped cache |
 | `test/engine.test.js` | Engine checks |
 
 ## What is real and what is placeholder
