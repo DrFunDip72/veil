@@ -1,9 +1,13 @@
 /* Veil service worker.
- * Shell is cache-first so the app opens instantly from the home screen.
- * Photos go in a separate, capped cache — they are the bulk of the bytes and
- * should never be able to evict the shell.
+ *
+ * Shell (HTML/CSS/JS) is network-first with a cache fallback, so a deploy
+ * takes effect on the very next load and the app still opens offline.
+ * Photos are cache-first in a separate, capped cache — they never change,
+ * they are the bulk of the bytes, and they must never evict the shell.
+ *
+ * Bump VERSION to drop every old cache on activate.
  */
-const VERSION = 'veil-v1';
+const VERSION = 'veil-v2';
 const SHELL = VERSION + '-shell';
 const PHOTOS = VERSION + '-photos';
 const PHOTO_LIMIT = 150;
@@ -87,15 +91,29 @@ self.addEventListener('fetch', ev => {
     return;
   }
 
-  /* Same-origin shell: cache first, refresh in the background. */
+  /* Same-origin shell: network first, falling back to cache.
+   *
+   * This was cache-first with a background refresh, which is faster but ships
+   * the PREVIOUS build on the first load after every deploy — the new files
+   * only land in the cache after the stale ones have already been served and
+   * executed. That is how a fixed bug came back on a verification run. The
+   * shell is a few KB, so correctness is worth more than the saved
+   * milliseconds; photos below stay cache-first since they never change. */
   if (url.origin === self.location.origin) {
     ev.respondWith((async () => {
-      const hit = await caches.match(req);
-      const net = fetch(req).then(res => {
-        if (res && res.ok) caches.open(SHELL).then(c => c.put(req, res.clone()));
+      try {
+        const res = await fetch(req);
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(SHELL).then(c => c.put(req, copy));
+        }
         return res;
-      }).catch(() => null);
-      return hit || (await net) || caches.match('./index.html');
+      } catch (err) {
+        return (await caches.match(req))
+          || (await caches.match('./index.html'))
+          || (await caches.match('./'))
+          || new Response('', { status: 504, statusText: 'offline' });
+      }
     })());
   }
 });
