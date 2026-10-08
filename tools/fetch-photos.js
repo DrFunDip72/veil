@@ -75,7 +75,12 @@ const BUCKETS = [
   { q: 'outdoor wedding venue',          shoot: 'weddings',    pose: -0.2, scale:  0.8 },
 ];
 
-const PAGES = PROBE ? 1 : 2;
+const PAGES = PROBE ? 1 : Number((process.argv.find(a => a.startsWith('--pages=')) || '--pages=2').slice(8));
+/* The API work is the scarce resource (50 calls/hour on a demo app) and the
+ * measuring is the slow part, so the fetched list is cached to disk. A crash
+ * or timeout during measurement then costs minutes, not an hour's quota. */
+const CACHE = path.join(__dirname, '.photo-cache.json');
+const FRESH = process.argv.includes('--fresh');
 const PER_PAGE = PROBE ? 8 : 30;
 
 /* ------------------------------------------------------------- Unsplash API */
@@ -114,8 +119,7 @@ async function search(bucket, page) {
 
 /* ------------------------------------------------------- measure the pixels */
 const ANALYSE = `(async (ids) => {
-  const out = [];
-  for (const id of ids) {
+  const one = async (id) => {
     try {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -161,23 +165,23 @@ const ANALYSE = `(async (ids) => {
       const p05 = sorted[(sorted.length * 0.05) | 0];
       const p95 = sorted[(sorted.length * 0.95) | 0];
 
-      out.push({
+      return {
         id, ok: true,
         rawWarmth: (rSum - bSum) / n,
         rawLight: lSum / n,
         rawColor: satSum / n,
         rawFilm: (hf / hfN) * 6 + p05 * 2 - (p95 - p05) * 0.5,
-      });
+      };
     } catch (err) {
-      out.push({ id, ok: false, error: String((err && err.message) || err) });
+      return { id, ok: false, error: String((err && err.message) || err) };
     }
-  }
-  return out;
+  };
+  return Promise.all(ids.map(one));
 })(${'%IDS%'})`;
 
 async function analyse(ws, ids) {
   const out = [];
-  const CHUNK = 10;
+  const CHUNK = 24; // loaded concurrently inside the page
   for (let i = 0; i < ids.length; i += CHUNK) {
     const res = await evaluate(ws, ANALYSE.replace('%IDS%', JSON.stringify(ids.slice(i, i + CHUNK))), 180000);
     out.push(...res);
@@ -202,27 +206,36 @@ async function main() {
   const buckets = PROBE ? BUCKETS.slice(0, 2) : BUCKETS;
   console.log('Fetching from Unsplash (' + buckets.length + ' queries x ' + PAGES + ' page(s))\n');
 
-  const seen = new Set();
-  const photos = [];
+  let photos = [];
   let remaining = '?';
 
-  for (const bucket of buckets) {
-    let added = 0, found = 0;
-    for (let page = 1; page <= PAGES; page++) {
-      const res = await search(bucket, page);
-      remaining = res.remaining;
-      found += res.results.length;
-      res.results.forEach(r => {
-        if (seen.has(r.id)) return;
-        seen.add(r.id);
-        photos.push({
-          id: r.id, shoot: bucket.shoot, pose: bucket.pose, scale: bucket.scale,
-          by: r.by, u: r.u,
+  if (!FRESH && fs.existsSync(CACHE)) {
+    photos = JSON.parse(fs.readFileSync(CACHE, 'utf8'));
+    console.log('  reusing ' + photos.length + ' photos from ' + path.basename(CACHE) +
+      '  (--fresh to re-fetch)\n');
+  } else {
+    const seen = new Set();
+    for (const bucket of buckets) {
+      let added = 0, found = 0;
+      for (let page = 1; page <= PAGES; page++) {
+        const res = await search(bucket, page);
+        remaining = res.remaining;
+        found += res.results.length;
+        res.results.forEach(r => {
+          if (seen.has(r.id)) return;
+          seen.add(r.id);
+          photos.push({
+            id: r.id, shoot: bucket.shoot, pose: bucket.pose, scale: bucket.scale,
+            by: r.by, u: r.u,
+          });
+          added++;
         });
-        added++;
-      });
+      }
+      console.log('  ' + bucket.q.padEnd(30) + found + ' found, ' + added + ' new');
     }
-    console.log('  ' + bucket.q.padEnd(30) + found + ' found, ' + added + ' new');
+    // Persist before the slow part, so a timeout never costs API quota again.
+    fs.writeFileSync(CACHE, JSON.stringify(photos));
+    console.log('\n  cached to ' + path.basename(CACHE));
   }
 
   console.log('\n' + photos.length + ' unique photos   (api calls left this hour: ' + remaining + ')');
@@ -294,7 +307,7 @@ async function main() {
 
   fs.writeFileSync(OUT, body);
   console.log('\nwrote photos.js — ' + slim.length + ' photos, ' + (body.length / 1024).toFixed(1) + ' KB');
-  console.log('Next: node tools/assign-photos.js   (gives each photographer a coherent portfolio)');
+  console.log("Next: node test/photos.test.js   (data.js assigns them to photographers on load)");
 }
 
 main().catch(e => { console.error('\n' + e.message); process.exitCode = 1; });

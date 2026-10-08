@@ -349,25 +349,56 @@ function buildPhotos(p) {
  * declared style and her real portfolio drift apart, and the match % would be
  * describing work she does not have.
  */
+/* Distance from a photographer's house style to a photo, weighted by how
+ * strongly she is defined by each axis.
+ *
+ * With equal weights, someone whose whole identity is one extreme — a film
+ * shooter at grain 0.95 — ends up with photos that are close on average but
+ * compromise on the only axis anyone would describe her by. Weighting an axis
+ * by how far she sits from neutral on it makes her signature dominate her own
+ * selection, while a generalist still matches on everything evenly. */
 function photoDistance(style, axes) {
-  let d = 0;
-  AXIS_KEYS.forEach(k => { d += Math.abs(style[k] - axes[k]); });
-  return d / AXIS_KEYS.length;
+  let d = 0, w = 0;
+  AXIS_KEYS.forEach(k => {
+    const weight = 1 + 2 * Math.abs(style[k]);
+    d += weight * Math.abs(style[k] - axes[k]);
+    w += weight;
+  });
+  return d / w;
 }
 
 function assignRealPhotos(library) {
-  PHOTOGRAPHERS.forEach(p => { p.photos = []; });
+  /* Always match against the hand-authored style, never a centroid left over
+   * from a previous call — otherwise re-running drifts the roster further
+   * each time instead of landing in the same place. */
+  PHOTOGRAPHERS.forEach(p => {
+    p.style = p.declaredStyle || p.style;
+    p.photos = [];
+  });
 
   SHOOTS.forEach(shoot => {
     const pool = library.filter(ph => ph.shoot === shoot.key);
     if (!pool.length) return;
     const claimed = new Set();
 
-    for (let round = 0; round < 5; round++) {
-      // Rotate who picks first each round so one photographer cannot take
-      // every best-fitting photo in the pool.
-      const order = PHOTOGRAPHERS.map((_, i) => (i + round) % PHOTOGRAPHERS.length);
+    /* Most-extreme styles pick first.
+     *
+     * Rotating the pick order sounds fairer but is not: photos at the far end
+     * of an axis are scarce (a corpus of real wedding work is mostly clean,
+     * mid-bright, mid-warm), while middling photos are abundant. Letting a
+     * generalist take a rare heavily-grained frame costs her nothing and
+     * costs the film photographer her entire identity. Ordering by how far a
+     * photographer sits from neutral gives the scarce frames to the only
+     * people whose portfolio depends on them. */
+    const order = PHOTOGRAPHERS
+      .map((p, i) => ({
+        i,
+        extremity: Math.sqrt(AXIS_KEYS.reduce((a, k) => a + p.style[k] * p.style[k], 0)),
+      }))
+      .sort((a, b) => b.extremity - a.extremity)
+      .map(x => x.i);
 
+    for (let round = 0; round < 5; round++) {
       order.forEach(pi => {
         const p = PHOTOGRAPHERS[pi];
         let best = null, bestD = Infinity;

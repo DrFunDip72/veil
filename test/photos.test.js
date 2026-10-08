@@ -116,6 +116,42 @@ check('still fills 15 slots each when the pool is too small',
 check('no slot is left without an image',
   D.PHOTOGRAPHERS.every(p => p.photos.every(ph => !!ph.unsplashId)));
 
+/* Each photographer's written copy makes a claim about her work. If the
+ * assignment stops backing that claim up, the roster reads as nonsense even
+ * though every number still validates. */
+console.log('\nWritten copy still matches the assigned portfolios');
+if (!D.USING_REAL_PHOTOS) {
+  console.log('  (skipped - no real photo library yet)');
+} else {
+  D.assignRealPhotos(D.PHOTO_LIBRARY);
+  const CLAIMS = [
+    ['ember-rowe',        'grain',  'high', 'Real film. Grainy, dim, honest.'],
+    ['clara-whitfield',   'grain',  'low',  'No trends to regret in ten years.'],
+    ['sage-linford',      'light',  'high', 'Bright, clean, magazine-tidy.'],
+    ['marin-halliday',    'light',  'low',  'Dark, editorial, a little bit dangerous.'],
+    ['wren-atwater',      'pose',   'low',  'I do not direct, I follow.'],
+    ['rosalind-tate',     'pose',   'high', 'Warm, posed, good at wrangling families.'],
+    ['isla-mendoza',      'color',  'high', 'Saturated, styled, off a mood board.'],
+    ['delaney-suh',       'color',  'low',  'Soft, muted, quiet. Nothing shouts.'],
+    ['thea-brightwell',   'scale',  'high', 'Tiny people, enormous landscapes.'],
+    ['brynn-castellanos', 'warmth', 'high', 'Red rock, big sky, deep colour.'],
+    ['hanna-reeve',       'warmth', 'high', 'Golden-hour film.'],
+  ];
+
+  CLAIMS.forEach(([id, axis, dir, copy]) => {
+    const vals = D.PHOTOGRAPHERS.map(p => ({ id: p.id, v: p.style[axis] }))
+      .sort((a, b) => dir === 'high' ? b.v - a.v : a.v - b.v);
+    const pos = vals.findIndex(x => x.id === id) + 1;
+    const mine = vals.find(x => x.id === id).v;
+    const leader = vals[0].v;
+    /* Top 3 outright, or close enough to the leader to be in the same
+     * cluster - a real corpus does not separate cleanly on every axis. */
+    const ok = pos <= 3 || Math.abs(leader - mine) <= 0.12;
+    check('"' + copy + '"', ok,
+      id + ' is #' + pos + ' on ' + axis + ' (' + mine.toFixed(2) + ' vs leader ' + leader.toFixed(2) + ')');
+  });
+}
+
 /* If a real library exists, sanity-check it as shipped. */
 console.log('\nGenerated photos.js');
 const real = D.PHOTO_LIBRARY || [];

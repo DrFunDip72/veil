@@ -236,6 +236,11 @@ async function main() {
   await imagesSettled(ws);
   await shootDevice(ws, '9-message.png');
 
+  console.log('credits');
+  await evaluate(ws, `window.veilGo('credits')`);
+  await sleep(400);
+  await shootDevice(ws, '11-credits.png');
+
   /* ---------------------------------------------------- 10. pro side */
   console.log('photographer side');
   await evaluate(ws, `window.veilGo('pro')`);

@@ -123,7 +123,7 @@ swipe button faster than the exit animation to prove votes are never double-comm
 
 ## Photography
 
-The app ships with a stub `photos.js` and falls back to generic stock images. To load real wedding photography:
+`photos.js` ships with **446 real wedding photographs** (144 engagement / 142 bridal / 160 wedding day) from 204 photographers. To regenerate or expand it:
 
 ```powershell
 # 1. https://unsplash.com/developers -> Your apps -> New Application -> copy the Access Key
@@ -132,11 +132,11 @@ $env:UNSPLASH_ACCESS_KEY = "..."
 node tools/fetch-photos.js
 ```
 
-That fetches ~350 engagement / bridal / wedding photos across 16 deliberately-chosen search buckets and writes `photos.js`. Nothing else changes — `data.js` picks it up automatically.
+Fetches across 16 deliberately-chosen search buckets and writes `photos.js`; `data.js` picks it up automatically. The API results are cached to `tools/.photo-cache.json` before the slow measuring step, so a crash costs minutes rather than an hour of the 50-calls/hour demo quota. `--pages=N` controls depth, `--fresh` ignores the cache.
 
 **The photos are measured, not labelled.** Veil's blind taste test only means anything if a photo's recorded style matches what the photo actually looks like. Dropping in real images with invented axis values would leave a bright airy shot tagged "moody film" and the matching would be theatre. So `warmth`, `light`, `grain` and `color` are computed from each photo's own pixels (mean channel balance, luminance, saturation, high-frequency energy and shadow lift) in a headless Chrome canvas, then rank-normalised across the corpus so the axes actually span −1..1. `pose` and `scale` are not recoverable from pixels without a model, so they come from the search bucket each photo was found in.
 
-Each photographer then claims the five photos per shoot closest to her house style — and **her style vector is replaced by the centroid of the photos she actually ended up with**, so the match % always describes the portfolio on screen rather than a declared style that drifted away from it. `test/photos.test.js` guards that.
+Each photographer then claims the five photos per shoot closest to her house style, with two deliberate tilts: **the most extreme styles pick first** (photos at the far end of an axis are scarce, and a generalist taking a rare heavily-grained frame costs her nothing while costing the film photographer her identity), and **each photographer's distance is weighted by how far she sits from neutral on each axis**, so her signature dominates her own selection — and **her style vector is replaced by the centroid of the photos she actually ended up with**, so the match % always describes the portfolio on screen rather than a declared style that drifted away from it. `test/photos.test.js` guards that, and also asserts each photographer's *written copy* still matches the portfolio she ended up with — "Real film. Grainy, dim, honest." has to stay near the top of the grain axis or the roster reads as nonsense while every number still validates.
 
 **Licensing.** Only photo IDs and credits are committed; no image is redistributed. The app hotlinks `images.unsplash.com`, which is what the Unsplash License is built for. Their *API Terms* additionally require crediting the photographer and Unsplash — hence the credits screen under **You › Photo credits**, the credit under each revealed profile, and the explicit note that the studios are fictional and unconnected to the real photographers.
 
