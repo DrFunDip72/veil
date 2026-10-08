@@ -809,7 +809,7 @@
           sections +
           '<div style="margin-top:20px">' +
             '<button class="btn btn--paper" data-detail="' + p.id + '">' +
-              'Pricing, travel &amp; availability &rsaquo;</button>' +
+              'Meet ' + esc(p.name.split(' ')[0]) + ' &amp; see pricing &rsaquo;</button>' +
           '</div>' +
         '</div>' +
 
@@ -869,24 +869,53 @@
       nav: false,
       html:
         '<div class="view-pad fade-in" style="padding-top:0">' +
-          '<div class="hero">' + photoHTML(hero, 900, 1125) +
-            '<button class="back" data-back>&#8249;</button></div>' +
-          '<p class="hero-credit">' + creditLine(hero) + '</p>' +
+          /* The person, then the deal.
+           *
+           * This screen used to open with a work photo and a gallery strip
+           * she had just scrolled past on the work screen — pure duplication.
+           * By the time anyone taps through here the question has changed
+           * from "do I like this work" to "can I work with her, and can I
+           * afford her", so the person goes first and the logistics follow. */
+          '<div class="meet">' +
+            '<button class="meet-back" data-back>&#8249;</button>' +
+            '<div class="meet-face">' +
+              (D.portraitURL(p, 320)
+                ? '<img src="' + D.portraitURL(p, 320) + '" alt="">'
+                : '<span>' + esc(displayName(p).slice(0, 1)) + '</span>') +
+            '</div>' +
+            '<h2 class="meet-name">' + esc(displayName(p)) + '</h2>' +
+            '<p class="meet-meta">' + esc(p.base) + ' &middot; ' + p.years + ' years &middot; ' +
+              p.weddings + ' weddings</p>' +
+            '<p class="meet-tagline">' + esc(p.tagline) + '</p>' +
+          '</div>' +
 
+          badgesHTML(r) +
+
+          /* The question a nervous bride is actually asking. */
+          '<h3 class="section-title">Will she tell me what to do?</h3>' +
+          '<div class="card" style="padding:15px 16px">' +
+            '<p class="how-i-work">&ldquo;' + esc(p.howIWork) + '&rdquo;</p>' +
+            '<p class="how-i-work-by">&mdash; ' + esc(p.name.split(' ')[0]) + '</p>' +
+          '</div>' +
+
+          '<div class="quote">&ldquo;' + esc(p.quote) + '&rdquo;</div>' +
+
+          '<div class="meet-facts">' +
+            '<div class="fact"><b>' + esc(p.replyTime) + '</b><small>REPLIES</small></div>' +
+            '<div class="fact"><b>' + esc(p.turnaround) + '</b><small>TURNAROUND</small></div>' +
+            '<div class="fact"><b>' + esc(p.instagram) + '</b><small>INSTAGRAM</small></div>' +
+          '</div>' +
+
+          '<h3 class="section-title">A few of her photos</h3>' +
           '<div class="shoot-switch">' + D.SHOOTS.map(s =>
             '<button data-dshoot="' + s.key + '" class="' + (s.key === g.shoot ? 'on' : '') + '">' +
             esc(s.label) + '</button>').join('') + '</div>' +
-
+          '<div class="hero">' + photoHTML(hero, 900, 1125) + '</div>' +
+          '<p class="hero-credit">' + creditLine(hero) + '</p>' +
           '<div class="gallery-strip">' + stripHTML(p, g) + '</div>' +
-
-          '<h2 class="display" style="font-size:33px;margin-top:20px">' + esc(displayName(p)) + '</h2>' +
-          '<p style="font-size:12px;color:var(--ink-faint);margin:5px 0 0;letter-spacing:0.3px">' +
-            esc(p.base.toUpperCase()) + ' &middot; ' + p.years + ' YEARS &middot; ' +
-            p.weddings + ' WEDDINGS &middot; ' + esc(p.instagram) + '</p>' +
-          '<p class="lede">' + esc(p.tagline) + '</p>' +
-          badgesHTML(r) +
-
-          '<div class="quote">&ldquo;' + esc(p.quote) + '&rdquo;</div>' +
+          '<div style="margin-top:12px">' +
+            '<button class="btn btn--paper" data-allwork>See all ' + p.photos.length +
+            ' of her photos</button></div>' +
 
           '<h3 class="section-title">Style match &mdash; ' + r.match + '%</h3>' +
           matchBreakdownHTML(r) +
@@ -909,7 +938,6 @@
             detailRow('Your date', r.avail.note) +
             detailRow('Travel', r.travel.unknown ? r.travel.note :
               r.travel.maxMiles + ' mi from ' + esc(r.photographer.base) + ' to ' + esc(regionName())) +
-            detailRow('Turnaround', p.turnaround) +
             detailRow('You get', p.delivers) +
             detailRow('Second shooter', p.secondShooter) +
           '</div>' +
@@ -939,6 +967,9 @@
           $$('.gallery-strip .g').forEach((el, i) =>
             el.classList.toggle('on', i === g.index % list.length));
         };
+
+        const allWork = $('[data-allwork]');
+        if (allWork) allWork.addEventListener('click', () => go('work', { id: p.id }));
 
         const wirePicks = () => {
           $$('.gallery-strip .g').forEach(b => b.addEventListener('click', () => {
@@ -1231,8 +1262,10 @@
             const last = msgs[msgs.length - 1];
             const thumb = p.photos[0];
             return '<div class="thread-row" data-thread="' + id + '">' +
-              '<div class="av"><img src="' + D.photoURL(thumb, 120, 120) + '" alt="" loading="lazy" ' +
-              'style="filter:' + E.photoFilter(thumb.axes) + '"></div>' +
+              '<div class="av">' + (D.portraitURL(p, 120)
+                ? '<img src="' + D.portraitURL(p, 120) + '" alt="" loading="lazy">'
+                : '<img src="' + D.photoURL(thumb, 120, 120) + '" alt="" loading="lazy" ' +
+                  'style="filter:' + E.photoFilter(thumb.axes) + '">') + '</div>' +
               '<div class="tx"><h3>' + esc(displayName(p)) + '</h3>' +
               '<p>' + (last.from === 'draft' ? 'Draft: ' : last.from === 'them' ? '' : 'You: ') +
               esc(last.text.replace(/\n+/g, ' ')) + '</p></div>' +
@@ -1259,8 +1292,10 @@
       locked: true,
       topbar:
         '<button class="iconbtn" data-go="messages">&#8249;</button>' +
+        (D.portraitURL(p, 96)
+          ? '<div class="thread-face"><img src="' + D.portraitURL(p, 96) + '" alt=""></div>' : '') +
         '<div><h1 style="font-size:21px">' + esc(displayName(p)) + '</h1>' +
-        '<div class="sub">' + esc(p.base) + ' &middot; ' + esc(p.instagram) + '</div></div>',
+        '<div class="sub">' + esc(p.replyTime) + '</div></div>',
       html:
         '<div class="thread-scroll fade-in">' +
           (draft ? '<div class="note" style="margin-top:0"><b>Veil drafted this for you.</b> ' +

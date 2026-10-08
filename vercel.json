@@ -15,7 +15,7 @@
       ]
     },
     {
-      "source": "/(app.js|data.js|engine.js|photos.js|styles.css)",
+      "source": "/(app.js|data.js|engine.js|photos.js|portraits.js|styles.css)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
     },
     {

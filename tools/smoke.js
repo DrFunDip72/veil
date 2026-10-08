@@ -235,6 +235,36 @@ async function main() {
   await evaluate(ws, `window.veilGo('shortlist')`);
   await sleep(400);
   const slCount = await evaluate(ws, `document.querySelectorAll('.slrow').length`);
+  /* The person is revealed on a schedule that follows commitment. A face on
+   * the swipe deck or the matches list would re-create exactly the bias the
+   * blind test exists to remove, so guard where it may and may not appear. */
+  console.log('\nThe person appears only once the work has been judged');
+  await evaluate(ws, `window.veilGo('matches')`);
+  await sleep(1200);
+  check('no portrait on the matches list',
+    await evaluate(ws, `[...document.querySelectorAll('.mcard img')]
+      .every(i => i.src.indexOf('crop=faces&') === -1)`) === true);
+
+  await evaluate(ws, `document.querySelector('.mcard').click()`);
+  await sleep(1200);
+  check('no portrait on her work screen',
+    await evaluate(ws, `!document.querySelector('.meet-face')`) === true);
+
+  await evaluate(ws, `document.querySelector('[data-detail]').click()`);
+  await sleep(1400);
+  check('the profile leads with her face',
+    await evaluate(ws, `!!document.querySelector('.meet-face img')`) === true);
+  check('it answers whether she will direct you',
+    await evaluate(ws, `/tell me what to do/i.test(document.body.textContent) &&
+      !!document.querySelector('.how-i-work')`) === true);
+  check('reply time is shown',
+    await evaluate(ws, `/REPLIES/.test(document.querySelector('.meet-facts').textContent)`) === true);
+  check('her work is still reachable from the profile',
+    await evaluate(ws, `!!document.querySelector('[data-allwork]')`) === true);
+
+  await evaluate(ws, `window.veilGo('shortlist')`);
+  await sleep(800);
+
   check('three photographers shortlisted', slCount === 3, slCount + ' rows');
 
   await evaluate(ws, `document.querySelectorAll('[data-sel]').forEach((b, i) => { if (i < 3) b.click(); })`);

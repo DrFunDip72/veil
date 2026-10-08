@@ -100,6 +100,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-12', '2027-06-19', '2027-09-04'],
     turnaround: '4-6 weeks', delivers: '600+ edited images, online gallery, print release',
     secondShooter: 'Included on wedding day',
+    howIWork: 'I will put you somewhere with good light, give you something to do with your hands, and then mostly shut up. If you are stiff for the first ten minutes that is normal and I will not point it out.',
+    replyTime: 'Usually within a day',
     quote: 'I would rather catch you laughing at something dumb he said than get a perfect jawline.',
   },
   {
@@ -116,6 +118,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-05', '2027-06-26', '2027-07-10', '2027-08-14'],
     turnaround: '3 weeks', delivers: '800+ images, two albums, styling guide',
     secondShooter: 'Included, plus an assistant',
+    howIWork: 'I direct a lot, and people are relieved when I do. Chin, hands, shoulders, weight on the back foot. You will never have to wonder what to do with your arms. Expect a timeline from me two weeks out.',
+    replyTime: 'Same day, weekdays',
     quote: 'You are going to hang these on a wall for fifty years. They should look deliberate.',
   },
   {
@@ -132,6 +136,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-12', '2027-07-17'],
     turnaround: '6-8 weeks', delivers: '500 images, hand-graded, fine-art print box',
     secondShooter: 'Add $450',
+    howIWork: 'I will move you into the light I want, then wait a long time for one frame. I shoot less than most people and I am picky about it. If you want 900 photos I am the wrong person.',
+    replyTime: 'Within 2 days',
     quote: 'Shadows are not a problem to be fixed. They are the whole point.',
   },
   {
@@ -148,6 +154,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-05-29'],
     turnaround: '3-4 weeks', delivers: '400+ images, online gallery',
     secondShooter: 'Add $250',
+    howIWork: 'Barely at all. I will suggest a direction to walk and let the rest happen. I am comfortable with silence and I never rush a timeline, which some couples love and some find maddening.',
+    replyTime: 'Within a day or two',
     quote: 'My couples usually tell me they forgot I was there. That is the review I want.',
   },
   {
@@ -164,6 +172,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-19', '2027-10-09'],
     turnaround: '5 weeks', delivers: '700+ images, desert location scouting included',
     secondShooter: 'Included on wedding day',
+    howIWork: 'A mix. Big landscape frames I will place you precisely, because an inch matters at that distance. Everything close-up I leave alone. Wear shoes you can hike twenty minutes in.',
+    replyTime: 'Usually within a day',
     quote: 'Give me one hour in Snow Canyon and I will ruin every other photo you own.',
   },
   {
@@ -180,6 +190,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-05', '2027-06-12', '2027-08-21'],
     turnaround: '2-3 weeks', delivers: '650 images, heirloom album, parent albums available',
     secondShooter: 'Included on wedding day',
+    howIWork: 'I will pose you properly, the way it was done before everyone decided posing was embarrassing. You will get the family groupings your mother wants, done in fifteen minutes, because I bring a list.',
+    replyTime: 'Same day',
     quote: 'Trends age badly. Good light does not.',
   },
   {
@@ -196,6 +208,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-07-24'],
     turnaround: '8-10 weeks (lab scans)', delivers: '300 scans, every frame I shot, no culling',
     secondShooter: 'Add $400 (digital backup shooter)',
+    howIWork: 'Almost not at all. I shoot film, so I am slower and quieter than you expect and I will not be showing you the back of a camera. You will not see anything for eight weeks. People who need reassurance should book someone else.',
+    replyTime: 'Within 3 days',
     quote: 'I shoot 120 film. It costs more and takes longer and it is worth both.',
   },
   {
@@ -212,6 +226,8 @@ const PHOTOGRAPHERS = [
     booked: [],
     turnaround: '2 weeks', delivers: '500+ images, same-day sneak peeks',
     secondShooter: 'Add $200',
+    howIWork: 'I talk the whole time, which most people find relaxing and a few find a lot. I will tell you when you look good because you will not believe it otherwise. Sneak peeks the same night.',
+    replyTime: 'Within an hour, usually',
     quote: 'I am newer and cheaper and I will out-work anyone on this list.',
   },
   {
@@ -228,6 +244,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-26', '2027-09-11'],
     turnaround: '5-6 weeks', delivers: '900 images, unculled documentary edit',
     secondShooter: 'Included on wedding day',
+    howIWork: 'I do not. I will introduce myself, then disappear for eight hours. No posed portraits unless you ask, and if you ask I will do them badly. Hire me because you want the day as it happened.',
+    replyTime: 'Within 2 days',
     quote: 'If you want a photo of you looking at the camera, hire someone else.',
   },
   {
@@ -244,6 +262,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-12', '2027-07-31'],
     turnaround: '4 weeks', delivers: '600 images, full styling direction, mood board call',
     secondShooter: 'Included on wedding day',
+    howIWork: 'Completely. Send me your Pinterest board and I will build a shot list from it, then walk you through every frame. Nothing on the day is improvised. Couples who hate being told what to do hate working with me.',
+    replyTime: 'Same day',
     quote: 'Send me your Pinterest board. I will actually build it.',
   },
   {
@@ -260,6 +280,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-08-07'],
     turnaround: '4 weeks', delivers: '550 images, muted signature edit, gallery + USB',
     secondShooter: 'Add $300',
+    howIWork: 'Gently. A hand here, a step back there, then quiet. I am the least loud person in the room on a wedding day and that is deliberate. I will never ask you to do anything you would be embarrassed to be seen doing.',
+    replyTime: 'Within a day',
     quote: 'My whole edit is built so the photo never competes with the people in it.',
   },
   {
@@ -276,6 +298,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-05', '2027-06-19', '2027-07-03', '2027-09-25'],
     turnaround: '3 weeks', delivers: '700 images, every family combination you asked for',
     secondShooter: 'Included on wedding day',
+    howIWork: 'Firmly and kindly. After six hundred weddings I know that someone has to be in charge of the family photos and it should not be you. Give me a list and twenty minutes and it is done.',
+    replyTime: 'Same day',
     quote: 'I have photographed 600 weddings. Nothing that happens at yours will surprise me.',
   },
   {
@@ -292,6 +316,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-07-17'],
     turnaround: '5 weeks', delivers: '600 images, hike-in sessions at no extra charge',
     secondShooter: 'Add $350',
+    howIWork: 'Lightly, and usually from a long way off. Most of my direction is shouted across a meadow. We will walk further than you planned, so tell me now if that is a problem and I will find somewhere closer.',
+    replyTime: 'Within a day',
     quote: 'We are going to hike twenty minutes past where everyone else stops.',
   },
   {
@@ -308,6 +334,8 @@ const PHOTOGRAPHERS = [
     booked: ['2027-06-26'],
     turnaround: '5-6 weeks', delivers: '600 images, large-format print credit',
     secondShooter: 'Add $325',
+    howIWork: 'I will place you for the big weather frames and leave you alone the rest of the time. I watch the forecast obsessively and may ask to move your portrait slot on the day if something good is coming in.',
+    replyTime: 'Within 2 days',
     quote: 'Bad weather is good news. Call me when the forecast turns.',
   },
 ];
@@ -463,6 +491,29 @@ function assignRealPhotos(library) {
   });
 }
 
+/* ------------------------------------------------------------- portraits
+ * One headshot per photographer, assigned in roster order. Stand-ins for
+ * something each photographer would upload herself; see
+ * tools/fetch-portraits.js for the licensing caveat on using a real face
+ * for a fictional persona.
+ */
+function loadPortraits() {
+  if (typeof window !== 'undefined' && window.VEIL_PORTRAITS) return window.VEIL_PORTRAITS;
+  if (typeof require !== 'undefined') {
+    try { return require('./portraits.js'); } catch (err) { return null; }
+  }
+  return null;
+}
+
+const PORTRAITS = loadPortraits() || [];
+PHOTOGRAPHERS.forEach((p, i) => { p.portrait = PORTRAITS[i % (PORTRAITS.length || 1)] || null; });
+
+function portraitURL(p, size) {
+  if (!p || !p.portrait) return '';
+  return 'https://images.unsplash.com/' + p.portrait.id +
+    '?w=' + size + '&h=' + size + '&fit=crop&crop=faces&q=80&auto=format';
+}
+
 function loadPhotoLibrary() {
   if (typeof window !== 'undefined' && window.VEIL_PHOTO_LIBRARY) return window.VEIL_PHOTO_LIBRARY;
   if (typeof require !== 'undefined') {
@@ -510,7 +561,7 @@ function milesBetween(a, b) {
 }
 
 const VEIL_DATA = {
-  AXES, AXIS_KEYS, VENUES, REGIONS, SHOOTS, PHOTOGRAPHERS, PHOTO_SRC, photoURL, USE_LOCAL_PHOTOS,
+  AXES, AXIS_KEYS, VENUES, REGIONS, SHOOTS, PHOTOGRAPHERS, PORTRAITS, portraitURL, PHOTO_SRC, photoURL, USE_LOCAL_PHOTOS,
   PHOTO_LIBRARY, USING_REAL_PHOTOS, assignRealPhotos, buildPhotos,
   buildTasteDeck, milesBetween, hashStr, mulberry32,
 };

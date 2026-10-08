@@ -26,9 +26,10 @@ Veil inverts it: **taste first, everything else second.**
 2. **Blind taste test** — 36 photos, one at a time, no metadata at all. Swipe right (my style), left (not me), up (obsessed).
 3. **Your matches** — straight to the answer: your closest three, tappable, with the payoff line *"You picked 2 of her photos blind."* The style name is one line; the full axis breakdown lives in **You**, because it is reference material, not what anyone wants the second they stop swiping.
 4. **Matches** — a ranked list, best fit first. Tap any card for her whole body of work; tap any photo there for full screen. Save with the heart, or from inside her work.
-5. **Saved** — nobody is contacted until you message them.
-6. **Compare** — 2 or 3 side by side, same shoot type, best value in each row marked.
-7. **Message** — a pre-written enquiry with your date, venues and her actual price for your package already filled in.
+5. **Profile** — *"can I work with her, and can I afford her."* Her face, then **"Will she tell me what to do?"** in her own words, then reply time, then pricing and logistics.
+6. **Saved** — nobody is contacted until you message them.
+7. **Compare** — 2 or 3 side by side, same shoot type, best value in each row marked.
+8. **Message** — a pre-written enquiry with your date, venues and her actual price for your package already filled in.
 
 ### The decision model (the thing you asked about)
 
@@ -48,6 +49,10 @@ Swiping is for *discovery*. Compare is for *deciding*. Keeping those separate is
 ---
 
 ## Design decisions worth knowing
+
+**The person is revealed on a schedule that follows commitment.** No face appears until the profile. A portrait on the swipe deck or the matches list would re-create exactly the bias the blind test exists to remove — you would judge her appearance alongside her work, which is the Instagram problem again. By the time anyone taps through to the profile the question has genuinely changed from *"do I like this work"* to *"can I work with her"*, and that is where a face helps instead of contaminating. `smoke.js` guards both halves of that rule.
+
+Rapport decides as many bookings as portfolio, and it is the one thing the matching maths **cannot** predict — so Veil never claims you will enjoy working with someone. It only claims her work looks like what you picked. The rapport signal is her own words: **"Will she tell me what to do?"** is the question a nervous bride actually has, and no directory answers it.
 
 **The swipe card is about her work and nothing else.** Price, travel and availability cannot be acted on until Shortlist and Compare, so putting them on the swipe card only competes with the photograph — and re-contaminates exactly the style judgement the blind test exists to protect. Blockers still show ("booked your date", "$300 over") because those change whether shortlisting her is worth it; reassurances ("in budget", "no travel fee") are noise and are gone.
 

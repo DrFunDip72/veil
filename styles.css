@@ -1082,6 +1082,119 @@ input[type=range] {
 }
 .shoot-switch button.on { background: var(--plum); border-color: var(--plum); color: #fff; }
 
+/* ============================================================== meet her
+ * The top of the profile. Deliberately a person, not a photograph — by this
+ * point her work has already been judged and the question has changed.
+ */
+.meet {
+  position: relative;
+  margin: 0 -22px;
+  padding: 10px 22px 20px;
+  text-align: center;
+  background: linear-gradient(to bottom, var(--blush-soft), var(--ivory));
+}
+.meet-back {
+  position: absolute;
+  top: 8px; left: 16px;
+  width: 36px; height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 17px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.meet-face {
+  width: 112px; height: 112px;
+  margin: 6px auto 14px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--blush);
+  border: 3px solid var(--paper);
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+}
+.meet-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.meet-face span {
+  font-family: var(--serif);
+  font-size: 44px;
+  color: var(--plum);
+}
+.meet-name {
+  font-family: var(--serif);
+  font-size: 31px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.1;
+}
+.meet-meta {
+  font-size: 11.5px;
+  letter-spacing: 0.4px;
+  color: var(--ink-faint);
+  margin: 6px 0 0;
+}
+.meet-tagline {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 10px auto 0;
+  max-width: 290px;
+}
+
+.how-i-work {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0;
+}
+.how-i-work-by {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin: 9px 0 0;
+  text-align: right;
+}
+
+.meet-facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+.meet-facts .fact {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 11px 8px;
+  text-align: center;
+}
+.meet-facts .fact b {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.meet-facts .fact small {
+  display: block;
+  font-size: 8.5px;
+  letter-spacing: 0.6px;
+  color: var(--ink-faint);
+  margin-top: 5px;
+}
+
+.thread-face {
+  flex: none;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--blush);
+}
+.thread-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 /* ================================================================== profile */
 .hero {
   position: relative;
