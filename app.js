@@ -320,7 +320,7 @@
   /* Animate the top card off-screen, then commit the vote. */
   function flyOut(commit, v) {
     if (swipeBusy) return;
-    const top = $('#deck .swipecard:last-child') || $('#deck .matchcard:last-child');
+    const top = $('#deck .swipecard:last-child');
     if (!top) { commit(v); return; }
     const dir = v === 'pass' ? -1 : 1;
     top.style.transition = 'transform 0.26s ease-in, opacity 0.26s ease-in';
@@ -388,84 +388,59 @@
   }
 
   /* ----------------------------------------------------------- style reveal */
+  function axisBarsHTML(pr) {
+    const dom = E.dominantAxes(pr.axes).slice(0, 4);
+    if (!dom.length) return '';
+    return '<div style="margin-top:12px">' + dom.map(x => {
+      const pct = Math.min(100, Math.abs(x.value) * 100);
+      const left = x.value < 0 ? 50 - pct / 2 : 50;
+      const low = x.value < 0 ? '<b>' + esc(x.axis.low) + '</b>' : esc(x.axis.low);
+      const high = x.value > 0 ? '<b>' + esc(x.axis.high) + '</b>' : esc(x.axis.high);
+      return '<div class="axis">' +
+        '<div class="axis-row"><span>' + low + '</span><span>' + high + '</span></div>' +
+        '<div class="axis-track"><div class="axis-fill" style="left:' + left +
+          '%;width:' + pct / 2 + '%"></div></div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
   screens.reveal = () => {
     const pr = profile();
     const dom = E.dominantAxes(pr.axes).slice(0, 4);
     const rank = ranked();
-    const good = rank.filter(r => r.match >= 70).length;
 
-    const blind = Object.entries(pr.likedBy)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([id, n]) => {
-        const p = byId(id);
-        return '<div class="blindrow">' +
-          '<div class="n">' + n + '</div>' +
-          '<div class="who">' + esc(displayName(p)) +
-            '<small>' + esc(p.base) + ' &middot; ' + esc(p.tagline) + '</small></div>' +
-        '</div>';
-      }).join('');
-
-    const axisBars = dom.map(x => {
-      const pct = Math.min(100, Math.abs(x.value) * 100);
-      const left = x.value < 0 ? 50 - pct / 2 : 50;
-      const lowLabel = x.value < 0 ? '<b>' + esc(x.axis.low) + '</b>' : esc(x.axis.low);
-      const highLabel = x.value > 0 ? '<b>' + esc(x.axis.high) + '</b>' : esc(x.axis.high);
-      return '<div class="axis">' +
-        '<div class="axis-row"><span>' + lowLabel + '</span><span>' + highLabel + '</span></div>' +
-        '<div class="axis-track"><div class="axis-fill" style="left:' + left + '%;width:' + pct / 2 + '%"></div></div>' +
-      '</div>';
-    }).join('');
+    const top = rank.slice(0, 3);
 
     return {
       /* Keep the nav here: this screen is also what the Taste tab shows once
        * the deck is finished, and hiding the bar would strand her on it. */
       nav: true,
-      topbar: '<div><h1>Your style</h1><div class="sub">Built from ' + S.swipes.length + ' blind swipes</div></div>',
+      topbar:
+        '<div><h1>Your matches</h1><div class="sub">From ' + S.swipes.length +
+        ' blind swipes &middot; ' + esc(pr.label) + '</div></div>',
       html:
         '<div class="view-pad fade-in">' +
-          '<h2 class="display" style="font-size:38px;margin-top:6px"><em>' + esc(pr.label) + '</em></h2>' +
-          '<p class="lede">' + esc(describeTaste(dom)) + '</p>' +
-          (pr.needsMoreSwipes
-            ? '<div class="note" style="border:1px solid var(--blush);background:var(--blush-soft);color:var(--plum-deep)">' +
-              'Your swipes were spread pretty evenly, so this read is soft. The ranking still works &mdash; ' +
-              'just treat the top few as suggestions rather than a verdict.</div>'
-            : '') +
-          '<div class="stat-row">' +
-            '<div class="stat"><b>' + good + '</b><small>STRONG MATCHES</small></div>' +
-            '<div class="stat"><b>' + rank.filter(r => r.avail.state !== 'booked').length + '</b><small>FREE YOUR DATE</small></div>' +
-            '<div class="stat"><b>' + rank.filter(r => !r.overBudget).length + '</b><small>IN BUDGET</small></div>' +
+          '<p class="lede" style="margin-top:2px">' + esc(describeTaste(dom)) + '</p>' +
+
+          /* Straight to the answer. The axis chart and the full style
+           * breakdown moved to the You tab: at this moment the only thing
+           * she wants is who she matched with and a way to open them. */
+          '<h3 class="section-title">Your closest three</h3>' +
+          top.map(r => matchCardHTML(r)).join('') +
+
+          '<div style="margin-top:6px">' +
+            '<button class="btn" data-go="matches">See all ' + rank.length + ' matches</button>' +
           '</div>' +
-
-          '<h3 class="section-title">What you actually picked</h3>' +
-          axisBars +
-
-          (blind ? '<h3 class="section-title">You chose these photographers<br>without knowing it</h3>' +
-            '<p style="font-size:13px;color:var(--ink-soft);margin:0 0 4px;line-height:1.55">' +
-            'Number of their photos you swiped right on, before any name was attached.</p>' +
-            '<div class="blindlist card" style="padding:4px 14px">' + blind + '</div>' : '') +
-
-          '<div style="margin-top:26px"><button class="btn" data-go="matches">See your matches</button></div>' +
-          '<div style="text-align:center;margin-top:8px">' +
-            '<button class="linkbtn" data-retake>Swipe again from scratch</button></div>' +
         '</div>',
-      mount() {
-        $('[data-retake]').addEventListener('click', () => {
-          S.swipes = []; S.tasteDone = false; save(); go('taste');
-        });
-      },
+      mount() { wireMatchCards(); },
     };
   };
 
   function describeTaste(dom) {
     if (!dom.length) return 'You have not swiped enough yet for a clear read.';
-    const parts = dom.slice(0, 3).map(x => {
-      const side = x.value > 0 ? x.axis.high : x.axis.low;
-      return side.toLowerCase();
-    });
-    return 'You consistently chose photos that were ' + parts.slice(0, -1).join(', ') +
-      (parts.length > 1 ? ' and ' : '') + parts[parts.length - 1] +
-      '. That is a real preference, not a mood — it held across the whole deck.';
+    const parts = dom.slice(0, 3).map(x => (x.value > 0 ? x.axis.high : x.axis.low).toLowerCase());
+    return 'You kept choosing photos that were ' + parts.slice(0, -1).join(', ') +
+      (parts.length > 1 ? ' and ' : '') + parts[parts.length - 1] + '.';
   }
 
   /* ---------------------------------------------------------- match swiping */
@@ -478,115 +453,87 @@
         'Start swiping', 'taste');
     }
 
-    const queue = ranked().filter(r => !S.seen[r.photographer.id]);
-
-    if (!queue.length) {
-      return emptyScreen('Matches', '✓', 'That is everyone',
-        'You have been through all ' + D.PHOTOGRAPHERS.length + ' photographers in your area. ' +
-        'Your shortlist is where the real decision happens.',
-        'Go to shortlist', 'shortlist', true);
-    }
-
-    const upcoming = queue.slice(0, 2).reverse();
+    /* A ranked list, not a second swipe deck.
+     *
+     * The taste test already did the sorting — making her swipe through all
+     * fourteen photographers afterwards re-does the work she just did, forces
+     * it in a fixed order, and means she cannot jump back to the one she
+     * liked two cards ago. Swiping belongs to the photos; matches are a list,
+     * the same way a dating app swipes on people and then lists your matches.
+     */
+    const all = ranked();
+    const hidden = all.filter(r => S.seen[r.photographer.id] === 'pass');
+    const visible = all.filter(r => S.seen[r.photographer.id] !== 'pass');
 
     return {
       nav: true,
-      locked: true,
       topbar:
-        '<div><h1>Matches</h1><div class="sub">' + queue.length + ' left &middot; ranked by style fit</div></div>' +
-        '<div class="topbar-spacer"></div>' +
-        '<button class="iconbtn" data-go="shortlist" title="Shortlist">&#9825;</button>',
+        '<div><h1>Your matches</h1><div class="sub">' + visible.length +
+        ' photographers &middot; closest fit first</div></div>',
       html:
-        '<div class="deck" id="deck" style="margin-top:4px">' +
-          upcoming.map((r, idx) => matchCardHTML(r, upcoming.length - 1 - idx)).join('') +
-        '</div>' +
-        '<div class="swipe-actions">' +
-          '<button class="sa-no" data-vote="pass" aria-label="Pass">&#10005;</button>' +
-          '<button class="sa-yes" data-vote="like" aria-label="Shortlist">&#9825;</button>' +
-        '</div>' +
-        '<div class="swipe-hint">Swiping right only shortlists her &mdash; nobody gets messaged</div>',
+        '<div class="view-pad fade-in" style="padding-top:0">' +
+          (visible.length
+            ? visible.map(r => matchCardHTML(r)).join('')
+            : '<div class="empty"><div class="mark">&#9633;</div>' +
+              '<h3>You hid everyone</h3><p>Bring some back to keep looking.</p></div>') +
+
+          (hidden.length
+            ? '<div class="hidden-note">' + hidden.length + ' hidden &middot; ' +
+              '<button class="linkbtn" data-unhide>bring them back</button></div>'
+            : '') +
+        '</div>',
       mount() {
-        const top = $('#deck .matchcard:last-child');
-        if (top) {
-          attachSwipe(top, vote);
-          wireGallery(top);
-        }
-        $$('[data-vote]').forEach(b => b.addEventListener('click', () => flyOut(vote, b.dataset.vote)));
-        keyHandler = ev => {
-          if (ev.key === 'ArrowLeft') flyOut(vote, 'pass');
-          else if (ev.key === 'ArrowRight') flyOut(vote, 'like');
-        };
+        wireMatchCards();
+        const un = $('[data-unhide]');
+        if (un) un.addEventListener('click', () => {
+          hidden.forEach(r => { delete S.seen[r.photographer.id]; });
+          save(); render();
+        });
       },
     };
-
-    function vote(v) {
-      if (!queue.length) return; // queue already drained
-      const id = queue[0].photographer.id;
-      if (v === 'pass') { S.seen[id] = 'pass'; }
-      else {
-        S.seen[id] = 'shortlist';
-        if (!S.shortlist.includes(id)) S.shortlist.unshift(id);
-        toast('Added to your shortlist');
-      }
-      save();
-      render();
-    }
   };
 
-  function matchCardHTML(r, depth) {
+  /* One card, used by both the reveal screen and the matches list. */
+  function matchCardHTML(r) {
     const p = r.photographer;
-    const g = galleryState[p.id] || (galleryState[p.id] = { shoot: S.prefs.shoots[0] || 'engagements', index: 0 });
-    const photos = p.photos.filter(ph => ph.shoot === g.shoot);
-    const photo = photos[g.index % photos.length];
+    const saved = S.shortlist.includes(p.id);
+    const hero = p.photos.filter(ph => ph.shoot === (S.prefs.shoots[0] || 'engagements'))[0] || p.photos[0];
 
-    const circ = 2 * Math.PI * 24;
-    const dash = (r.match / 100) * circ;
-
-    return '<div class="matchcard" data-pid="' + p.id + '" ' +
-      'style="transform:scale(' + (1 - depth * 0.03) + ') translateY(' + (depth * -8) + 'px);z-index:' + (10 - depth) + '">' +
-      '<div class="mc-gallery">' +
-        photoHTML(photo, 800, 900) +
-        '<div class="mc-opener" data-work="' + p.id + '"></div>' +
-        '<div class="mc-tabs">' + D.SHOOTS.map(s =>
-          '<button data-shoot="' + s.key + '" class="' + (s.key === g.shoot ? 'on' : '') + '">' +
-          esc(s.short) + '</button>').join('') + '</div>' +
-        '<div class="mc-ring">' +
-          '<svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="24" fill="rgba(28,16,24,0.55)" ' +
-            'stroke="rgba(255,255,255,0.3)" stroke-width="3"/>' +
-            '<circle cx="27" cy="27" r="24" fill="none" stroke="#E7CDD2" stroke-width="3" ' +
-            'stroke-linecap="round" stroke-dasharray="' + dash + ' ' + circ + '"/></svg>' +
-          '<span>' + r.match + '<small>%</small></span>' +
-        '</div>' +
-        '<div class="stamp stamp--yes">Shortlist</div>' +
-        '<div class="stamp stamp--no">Pass</div>' +
+    return '<div class="mcard" data-work="' + p.id + '">' +
+      '<div class="mcard-photo">' +
+        photoHTML(hero, 760, 570) +
+        '<span class="mcard-pct">' + r.match + '% match</span>' +
+        '<button class="mcard-save' + (saved ? ' on' : '') + '" data-save="' + p.id + '" ' +
+          'aria-label="' + (saved ? 'Saved' : 'Save') + '">' + (saved ? '&#9829;' : '&#9825;') + '</button>' +
       '</div>' +
-
-      /* Every photo of this shoot, visible at once. One at a time behind an
-       * invisible tap target was not enough to judge a style on. */
-      '<div class="mc-strip">' + photos.map((ph, i) =>
-        '<button class="mc-thumb' + (i === g.index % photos.length ? ' on' : '') + '" ' +
-          'data-pick="' + i + '" aria-label="Photo ' + (i + 1) + '">' +
-          '<img src="' + D.photoURL(ph, 150, 190) + '" alt="" loading="lazy" ' +
-          'style="filter:' + E.photoFilter(ph.axes) + '">' +
-        '</button>').join('') + '</div>' +
-
-      '<div class="mc-body">' +
-        '<h2 class="mc-name">' + esc(displayName(p)) +
-          '<small>' + esc(p.base.toUpperCase()) + '</small></h2>' +
-        '<p class="mc-tagline">' + esc(p.tagline) + '</p>' +
-        blockersHTML(r) +
+      '<div class="mcard-body">' +
+        '<h3 class="mcard-name">' + esc(displayName(p)) +
+          '<small>' + esc(p.base.toUpperCase()) + '</small></h3>' +
+        '<p class="mcard-tagline">' + esc(p.tagline) + '</p>' +
         (r.blindLikes >= 2
-          ? '<p class="mc-blind">&#9829; You picked <b>' + r.blindLikes +
-            '</b> of her photos blind</p>'
+          ? '<p class="mc-blind">&#9829; You picked <b>' + r.blindLikes + '</b> of her photos blind</p>'
           : '') +
-        '<button class="btn btn--ghost btn--card" data-work="' + p.id + '">' +
-          'See all ' + p.photos.length + ' of her photos</button>' +
+        blockersHTML(r) +
       '</div>' +
     '</div>';
   }
 
+  function wireMatchCards() {
+    $$('[data-save]').forEach(b => b.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const id = b.dataset.save;
+      const i = S.shortlist.indexOf(id);
+      if (i >= 0) { S.shortlist.splice(i, 1); delete S.seen[id]; toast('Removed'); }
+      else { S.shortlist.unshift(id); S.seen[id] = 'shortlist'; toast('Saved'); }
+      save(); render();
+    }));
+
+    $$('.mcard[data-work]').forEach(c => c.addEventListener('click', () =>
+      go('work', { id: c.dataset.work })));
+  }
+
   /* The swipe card asks one question: do you like her work. Price, travel and
-   * availability cannot be acted on until Shortlist and Compare, so showing
+   * availability cannot be acted on until Saved and Compare, so showing
    * them here only competes with the photo — and re-contaminates the style
    * judgement the blind test exists to protect. Blockers still show, because
    * "she is booked that day" genuinely changes whether shortlisting her is
@@ -613,29 +560,53 @@
     return '<div class="badges">' + out.join('') + '</div>';
   }
 
-  /* Gallery tabs + tap-to-advance, inside a card that is also drag-swipeable. */
-  function wireGallery(cardEl) {
-    const pid = cardEl.dataset.pid;
-    const g = galleryState[pid];
+  /* ----------------------------------------------------------- lightbox
+   * Full-screen single photo, overlaid rather than routed, so closing it
+   * returns to the exact scroll position in her grid instead of rebuilding
+   * the screen underneath.
+   */
+  function openLightbox(photos, start) {
+    let i = start;
+    const host = $('.screen');
+    const box = document.createElement('div');
+    box.className = 'lightbox';
+    host.appendChild(box);
 
-    $$('[data-shoot]', cardEl).forEach(b => b.addEventListener('click', ev => {
-      ev.stopPropagation();
-      g.shoot = b.dataset.shoot; g.index = 0;
-      render();
-    }));
+    const draw = () => {
+      const ph = photos[i];
+      box.innerHTML =
+        '<button class="lb-close" aria-label="Close">&#10005;</button>' +
+        '<div class="lb-stage">' + photoHTML(ph, 1000, 1250) + '</div>' +
+        '<div class="lb-bar">' +
+          '<button class="lb-nav" data-step="-1" aria-label="Previous">&#8249;</button>' +
+          '<span class="lb-count">' + (i + 1) + ' / ' + photos.length + '</span>' +
+          '<button class="lb-nav" data-step="1" aria-label="Next">&#8250;</button>' +
+        '</div>' +
+        (creditLine(ph) ? '<p class="lb-credit">' + creditLine(ph) + '</p>' : '');
 
-    /* Explicit thumbnails instead of invisible left/right tap zones — the
-     * old ones were undiscoverable, so the card read as a single photo. */
-    $$('[data-pick]', cardEl).forEach(b => b.addEventListener('click', ev => {
-      ev.stopPropagation();
-      g.index = Number(b.dataset.pick);
-      render();
-    }));
+      $('.lb-close', box).addEventListener('click', close);
+      $$('.lb-nav', box).forEach(b => b.addEventListener('click', ev => {
+        ev.stopPropagation();
+        i = (i + Number(b.dataset.step) + photos.length) % photos.length;
+        draw();
+      }));
+    };
 
-    $$('[data-work]', cardEl).forEach(b => b.addEventListener('click', ev => {
-      ev.stopPropagation();
-      go('work', { id: pid });
-    }));
+    const onKey = ev => {
+      if (ev.key === 'Escape') close();
+      else if (ev.key === 'ArrowLeft') { i = (i - 1 + photos.length) % photos.length; draw(); }
+      else if (ev.key === 'ArrowRight') { i = (i + 1) % photos.length; draw(); }
+    };
+
+    function close() {
+      document.removeEventListener('keydown', onKey);
+      box.remove();
+    }
+
+    // Tapping the backdrop closes; taps on the photo or controls do not.
+    box.addEventListener('click', ev => { if (ev.target === box) close(); });
+    document.addEventListener('keydown', onKey);
+    draw();
   }
 
   /* --------------------------------------------------------- her work only
@@ -655,8 +626,9 @@
       if (!photos.length) return '';
       return '<h3 class="work-head">' + esc(s.label) +
         '<small>' + photos.length + ' photos</small></h3>' +
-        '<div class="work-grid">' + photos.map(ph =>
-          '<div class="work-cell">' + photoHTML(ph, 500, 620) + '</div>').join('') + '</div>';
+        '<div class="work-grid">' + photos.map((ph, i) =>
+          '<button class="work-cell" data-full="' + s.key + ':' + i + '" ' +
+          'aria-label="View full screen">' + photoHTML(ph, 500, 620) + '</button>').join('') + '</div>';
     }).join('');
 
     return {
@@ -683,9 +655,14 @@
         '<div class="work-actions">' +
           '<button class="btn btn--ghost" data-decide="pass">&#10005;&nbsp; Pass</button>' +
           '<button class="btn" data-decide="like">' +
-            (shortlisted ? '&#9829;&nbsp; Shortlisted' : '&#9825;&nbsp; Shortlist') + '</button>' +
+            (shortlisted ? '&#9829;&nbsp; Saved' : '&#9825;&nbsp; Save her') + '</button>' +
         '</div>',
       mount() {
+        $$('[data-full]').forEach(b => b.addEventListener('click', () => {
+          const [shoot, i] = b.dataset.full.split(':');
+          openLightbox(p.photos.filter(ph => ph.shoot === shoot), Number(i));
+        }));
+
         $('[data-detail]').addEventListener('click', () =>
           go('detail', { id: p.id, from: 'work', workId: p.id }));
 
@@ -698,7 +675,7 @@
           } else {
             S.seen[p.id] = 'shortlist';
             if (!S.shortlist.includes(p.id)) S.shortlist.unshift(p.id);
-            toast('Added to your shortlist');
+            toast('Saved');
           }
           save();
           go('matches');
@@ -784,7 +761,7 @@
 
           '<div class="sticky-actions">' +
             '<button class="btn ' + (shortlisted ? 'btn--paper' : 'btn--ghost') + '" data-shortlist>' +
-              (shortlisted ? '&#9829; Shortlisted' : '&#9825; Shortlist') + '</button>' +
+              (shortlisted ? '&#9829; Saved' : '&#9825; Save her') + '</button>' +
             '<button class="btn" data-message>Message</button>' +
           '</div>' +
         '</div>',
@@ -802,8 +779,8 @@
         }));
         $('[data-shortlist]').addEventListener('click', () => {
           const i = S.shortlist.indexOf(p.id);
-          if (i >= 0) { S.shortlist.splice(i, 1); delete S.seen[p.id]; toast('Removed from shortlist'); }
-          else { S.shortlist.unshift(p.id); S.seen[p.id] = 'shortlist'; toast('Added to your shortlist'); }
+          if (i >= 0) { S.shortlist.splice(i, 1); delete S.seen[p.id]; toast('Removed'); }
+          else { S.shortlist.unshift(p.id); S.seen[p.id] = 'shortlist'; toast('Saved'); }
           save(); render();
         });
         $('[data-message]').addEventListener('click', () => openThread(p.id));
@@ -838,8 +815,8 @@
   /* -------------------------------------------------------------- shortlist */
   screens.shortlist = () => {
     if (!S.shortlist.length) {
-      return emptyScreen('Shortlist', '♡', 'Nothing saved yet',
-        'Swiping right in Matches drops a photographer here. Nobody gets contacted until you say so.',
+      return emptyScreen('Saved', '♡', 'Nothing saved yet',
+        'Tap the heart on a match to keep her here. Nobody gets contacted until you say so.',
         'Find matches', 'matches', true);
     }
 
@@ -849,7 +826,7 @@
     return {
       nav: true,
       topbar:
-        '<div><h1>Shortlist</h1><div class="sub">' + S.shortlist.length + ' saved &middot; pick 2 or 3 to compare</div></div>',
+        '<div><h1>Saved</h1><div class="sub">' + S.shortlist.length + ' saved &middot; pick 2 or 3 to compare</div></div>',
       html:
         '<div class="view-pad fade-in">' +
           rows.map(r => {
@@ -871,7 +848,7 @@
             '</div>';
           }).join('') +
 
-          '<div class="note">Swiping was for finding people. This is where you decide. ' +
+          '<div class="note">Swiping was for finding your style. This is where you decide. ' +
           'Veil caps comparison at three on purpose &mdash; past three, nobody picks.</div>' +
 
           '<div class="comparebar">' +
@@ -1033,7 +1010,7 @@
       return emptyScreen('Messages', '✉', 'No conversations yet',
         'When you are ready, Veil writes the first message for you — your date, your venues, ' +
         'and her actual price for your package already filled in.',
-        'Go to shortlist', 'shortlist', true);
+        'Go to saved', 'shortlist', true);
     }
 
     return {
@@ -1139,13 +1116,22 @@
       topbar: '<div><h1>You</h1><div class="sub">' + fmtDate(S.prefs.date) + '</div></div>',
       html:
         '<div class="view-pad fade-in">' +
+          /* The full style breakdown lives here rather than on the results
+           * screen. It is reference material — interesting to look back at,
+           * but not what anyone wants in the moment they finish swiping. */
           '<div class="card" style="padding:16px">' +
             '<p class="eyebrow" style="margin-bottom:4px">Your style</p>' +
             '<h2 style="font-family:var(--serif);font-size:27px;font-weight:500;margin:0;color:var(--plum)">' +
               esc(pr.label) + '</h2>' +
-            '<p style="font-size:12.5px;color:var(--ink-soft);margin:7px 0 0">' +
+            '<p style="font-size:12.5px;color:var(--ink-soft);margin:7px 0 2px">' +
               S.swipes.length + ' photos swiped &middot; ' +
               S.swipes.filter(s => s.vote !== 'pass').length + ' liked</p>' +
+            axisBarsHTML(pr) +
+            (pr.needsMoreSwipes
+              ? '<p style="font-size:11.5px;color:var(--ink-faint);margin:10px 0 0;line-height:1.5">' +
+                'Your swipes were spread fairly evenly, so this read is soft. ' +
+                'Retaking the taste test would sharpen it.</p>'
+              : '') +
           '</div>' +
 
           '<h3 class="section-title">Your wedding</h3>' +
@@ -1329,7 +1315,7 @@
     const tabs = [
       { key: 'taste', ico: '✦', label: 'Taste' },
       { key: 'matches', ico: '◇', label: 'Matches' },
-      { key: 'shortlist', ico: '♡', label: 'Shortlist', badge: S.shortlist.length },
+      { key: 'shortlist', ico: '♡', label: 'Saved', badge: S.shortlist.length },
       { key: 'messages', ico: '✉', label: 'Messages', badge: Object.keys(S.threads).length },
       { key: 'me', ico: '○', label: 'You' },
     ];

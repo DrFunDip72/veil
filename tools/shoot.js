@@ -190,10 +190,18 @@ async function main() {
   /* ------------------------------------------------- 6. her work, then profile
    * Only the top card of the deck is wired up; the one behind it is inert. */
   console.log('her work');
-  await evaluate(ws, `document.querySelector('#deck .matchcard:last-child .mc-opener').click()`);
+  await evaluate(ws, `document.querySelector('.mcard').click()`);
   await sleep(700);
   await imagesSettled(ws);
   await shootDevice(ws, '6-her-work.png');
+
+  console.log('lightbox');
+  await evaluate(ws, `document.querySelector('[data-full]').click()`);
+  await sleep(900);
+  await imagesSettled(ws);
+  await shootDevice(ws, '6b-fullscreen.png');
+  await evaluate(ws, `document.querySelector('.lb-close').click()`);
+  await sleep(400);
 
   console.log('profile');
   await evaluate(ws, `document.querySelector('[data-detail]').click()`);

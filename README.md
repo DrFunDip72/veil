@@ -24,9 +24,9 @@ Veil inverts it: **taste first, everything else second.**
 
 1. **Setup (3 taps)** — wedding date, venues, budget, which shoots you need.
 2. **Blind taste test** — 36 photos, one at a time, no metadata at all. Swipe right (my style), left (not me), up (obsessed).
-3. **Your style** — a named aesthetic ("Candid Film Muted"), the axes you actually chose on, and the payoff line: *"You swiped right on 3 of Hanna Reeve's photos before you knew her name."*
-4. **Matches** — photographer cards ranked by style fit. Every photo of the selected shoot is visible at once; tap the photo for her whole body of work, where you can shortlist or pass without leaving the queue.
-5. **Shortlist** — swiping right only saves. Nobody is contacted.
+3. **Your matches** — straight to the answer: your closest three, tappable, with the payoff line *"You picked 2 of her photos blind."* The style name is one line; the full axis breakdown lives in **You**, because it is reference material, not what anyone wants the second they stop swiping.
+4. **Matches** — a ranked list, best fit first. Tap any card for her whole body of work; tap any photo there for full screen. Save with the heart, or from inside her work.
+5. **Saved** — nobody is contacted until you message them.
 6. **Compare** — 2 or 3 side by side, same shoot type, best value in each row marked.
 7. **Message** — a pre-written enquiry with your date, venues and her actual price for your package already filled in.
 
@@ -36,10 +36,12 @@ Swipe → Shortlist → Compare → Message, and each step means exactly one thi
 
 | Step | What it commits you to |
 |---|---|
-| Swipe right | Nothing. It saves her. |
-| Shortlist | A set to decide between. |
+| Swiping photos | Nothing about any person. It builds your taste. |
+| Save | A set to decide between. |
 | Compare | 2–3 max, side by side. **Capped on purpose** — past three, nobody picks. |
 | Message | The only step that contacts anyone. |
+
+**Swiping belongs to the photos, not the photographers.** Matches is a list, not a second deck — the taste test already did the sorting, so swiping through all fourteen afterwards would re-do the work you just did, in a fixed order, with no way back to the one you liked two cards ago. A dating app swipes on people and then lists your matches; Veil swipes on photos, so the same rule applies one level down.
 
 Swiping is for *discovery*. Compare is for *deciding*. Keeping those separate is why the funnel ends in a booking instead of an infinite scroll.
 

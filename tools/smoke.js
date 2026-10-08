@@ -137,7 +137,7 @@ async function main() {
    * anything faster, so a tighter loop would never reach the end of the deck. */
   await evaluate(ws, `(async () => {
     for (let i = 0; i < 60; i++) {
-      if (document.body.textContent.includes('Your style')) break;
+      if (document.body.textContent.includes('Your closest three')) break;
       const btn = document.querySelector('[data-vote="like"]') || document.querySelector('[data-vote]');
       if (!btn) break;
       btn.click();
@@ -145,8 +145,8 @@ async function main() {
     }
   })()`, 60000);
   await sleep(1200);
-  check('reveal screen reached after swiping the deck',
-    (await evaluate(ws, `document.body.textContent`)).includes('Your style'));
+  check('results screen reached after swiping the deck',
+    (await evaluate(ws, `document.body.textContent`)).includes('Your closest three'));
   check('a style label was produced',
     (await evaluate(ws, `VEIL_ENGINE.buildProfile(
       JSON.parse(localStorage.getItem('veil.state.v1')).swipes,
@@ -154,50 +154,56 @@ async function main() {
     ).label`)) !== 'Still Deciding');
 
   await evaluate(ws, `window.veilGo('matches')`);
-  await sleep(500);
-  check('match card rendered', await evaluate(ws, `!!document.querySelector('.matchcard')`) === true);
-  const pct = await evaluate(ws, `document.querySelector('.mc-ring span').textContent`);
-  check('match percentage shown', /\d/.test(pct), pct);
+  await sleep(700);
 
-  /* The decision path a real user takes: judge the work before committing.
-   * This is the flow that was broken - one photo behind an invisible tap
-   * target, and the only way to see more was leaving the queue. */
-  console.log('\nJudging her work before deciding');
-  const thumbs = await evaluate(ws,
-    `document.querySelectorAll('#deck .matchcard:last-child .mc-thumb').length`);
-  check('every photo of the shoot is visible on the card', thumbs === 5, thumbs + ' thumbnails');
-
-  await evaluate(ws, `document.querySelectorAll('#deck .matchcard:last-child .mc-thumb')[3].click()`);
-  await sleep(500);
-  check('tapping a thumbnail swaps the main photo',
-    await evaluate(ws, `!!document.querySelector('#deck .matchcard:last-child .mc-thumb:nth-child(4).on')`) === true);
-
+  /* Matches is a ranked LIST, not a second swipe deck. She already swiped 36
+   * photos; making her swipe 14 more photographers re-does that work. */
+  console.log('\nMatches is a browsable list');
+  const cards = await evaluate(ws, `document.querySelectorAll('.mcard').length`);
+  check('every match is listed at once', cards >= 10, cards + ' cards');
+  check('no second swipe deck', await evaluate(ws, `!document.querySelector('#deck .matchcard')`) === true);
+  check('match percentage shown', await evaluate(ws,
+    `/[0-9]/.test(document.querySelector('.mcard-pct').textContent)`) === true);
   check('no price or budget pill competes with the photo',
-    await evaluate(ws, `(() => {
-      const c = document.querySelector('#deck .matchcard:last-child .mc-body');
-      return !/all in|in budget|No travel/i.test(c.textContent);
-    })()`) === true);
+    await evaluate(ws, `!/all in|in budget|No travel/i.test(
+      document.querySelector('.mcard-body').textContent)`) === true);
 
-  await evaluate(ws, `document.querySelector('#deck .matchcard:last-child .mc-opener').click()`);
+  /* Judge the work before committing - the flow that was broken. */
+  console.log('\nJudging her work before deciding');
+  await evaluate(ws, `document.querySelector('.mcard').click()`);
   await sleep(1200);
   const cells = await evaluate(ws, `document.querySelectorAll('.work-cell').length`);
   check('her whole body of work is one tap away', cells === 15, cells + ' photos');
   check('all three shoot types are shown together',
     await evaluate(ws, `['Engagements','Bridals','Wedding day']
       .every(t => document.body.textContent.includes(t))`) === true);
-  check('she can be decided on without leaving for the profile',
+
+  await evaluate(ws, `document.querySelector('[data-full]').click()`);
+  await sleep(700);
+  check('a photo opens full screen', await evaluate(ws, `!!document.querySelector('.lightbox')`) === true);
+  await evaluate(ws, `document.querySelector('.lb-nav[data-step="1"]').click()`);
+  await sleep(400);
+  check('full screen steps between her photos',
+    await evaluate(ws, `document.querySelector('.lb-count').textContent.trim()`) === '2 / 5');
+  await evaluate(ws, `document.querySelector('.lb-close').click()`);
+  await sleep(400);
+  check('closing returns to her grid, not the queue',
+    await evaluate(ws, `!document.querySelector('.lightbox') && !!document.querySelector('.work-cell')`) === true);
+
+  check('she can be saved without leaving for the profile',
     await evaluate(ws, `!!document.querySelector('[data-decide="like"]')`) === true);
-
-  await evaluate(ws, `document.querySelector('[data-decide="pass"]').click()`);
+  await evaluate(ws, `document.querySelector('[data-decide="like"]').click()`);
   await sleep(900);
-  check('deciding returns to the queue with the next photographer up',
-    await evaluate(ws, `!!document.querySelector('#deck .matchcard')`) === true);
+  check('saving returns to the list', await evaluate(ws, `!!document.querySelector('.mcard')`) === true);
 
-  // Shortlist three via the real swipe buttons.
-  for (let i = 0; i < 3; i++) {
-    await evaluate(ws, `document.querySelector('[data-vote="like"]').click()`);
-    await sleep(450);
-  }
+  // Save two more straight from the list hearts.
+  await evaluate(ws, `(async () => {
+    for (const b of [...document.querySelectorAll('.mcard-save:not(.on)')].slice(0, 2)) {
+      b.click();
+      await new Promise(r => setTimeout(r, 450));
+    }
+  })()`, 20000);
+  await sleep(600);
   await evaluate(ws, `window.veilGo('shortlist')`);
   await sleep(400);
   const slCount = await evaluate(ws, `document.querySelectorAll('.slrow').length`);
