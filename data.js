@@ -32,8 +32,10 @@ function photoURL(photo, w, h) {
   if (!photo) return '';
   if (USE_LOCAL_PHOTOS) return 'photos/' + photo.photographerId + '/' + photo.shoot + '-' + photo.idx + '.jpg';
   if (photo.unsplashId) {
+    /* faces first, entropy as the fallback: plain entropy cropping was
+     * cutting people's heads off, which is a bad look for a photography app. */
     return 'https://images.unsplash.com/' + photo.unsplashId +
-      '?w=' + w + '&h=' + h + '&fit=crop&crop=entropy&q=80&auto=format';
+      '?w=' + w + '&h=' + h + '&fit=crop&crop=faces,entropy&q=80&auto=format';
   }
   return PHOTO_SRC(photo.seed, w, h);
 }

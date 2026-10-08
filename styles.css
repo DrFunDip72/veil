@@ -538,15 +538,33 @@ input[type=range] {
   overflow: hidden;
 }
 .mc-gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.mc-dots {
-  position: absolute; top: 10px; left: 12px; right: 12px;
-  display: flex; gap: 4px;
+/* Tapping the photo opens her full body of work. */
+.mc-opener { position: absolute; inset: 0; cursor: pointer; }
+
+/* Every photo of the selected shoot, visible at once. */
+.mc-strip {
+  flex: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--paper);
 }
-.mc-dots i {
-  flex: 1; height: 2.5px; border-radius: 2px;
-  background: rgba(255,255,255,0.4);
+.mc-thumb {
+  appearance: none;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #CDBFC6;
+  aspect-ratio: 4/5;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.14s ease, border-color 0.14s ease;
 }
-.mc-dots i.on { background: #fff; }
+.mc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mc-thumb.on { opacity: 1; border-color: var(--plum); }
 .mc-tabs {
   position: absolute; bottom: 10px; left: 12px;
   display: flex; gap: 6px;
@@ -564,7 +582,13 @@ input[type=range] {
   cursor: pointer;
 }
 .mc-tabs button.on { background: #fff; color: var(--ink); }
-.mc-tapzone { position: absolute; top: 0; bottom: 0; width: 34%; cursor: pointer; }
+.mc-blind {
+  font-size: 12px;
+  color: var(--plum);
+  margin: 9px 0 0;
+  font-weight: 500;
+}
+.btn--card { margin-top: 11px; padding: 11px 16px; font-size: 13px; }
 
 .mc-ring {
   position: absolute; top: 12px; right: 12px;
@@ -580,7 +604,7 @@ input[type=range] {
 }
 .mc-ring small { font-size: 9px; font-weight: 600; }
 
-.mc-body { flex: none; padding: 13px 16px 15px; }
+.mc-body { flex: none; padding: 11px 16px 14px; }
 .mc-name {
   font-family: var(--serif);
   font-size: 25px; font-weight: 500;
@@ -622,6 +646,60 @@ input[type=range] {
   color: var(--plum-deep);
 }
 .blind-flag b { font-weight: 700; }
+
+/* ============================================================== her work only
+ * Photographs and a decision. No pricing, no logistics — those live on the
+ * full profile, and crowding them in here is what made the match card
+ * impossible to read.
+ */
+.work-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 18px 18px;
+}
+.work-head {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  margin: 20px 0 9px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.work-head small {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.work-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+/* First frame of each shoot runs full width — a portfolio needs one image
+ * big enough to actually read the style off. */
+.work-grid .work-cell:first-child { grid-column: span 2; aspect-ratio: 4/3; }
+.work-cell {
+  position: relative;
+  aspect-ratio: 4/5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #CDBFC6;
+}
+
+.work-actions {
+  flex: none;
+  display: flex;
+  gap: 10px;
+  padding: 11px 18px calc(13px + env(safe-area-inset-bottom));
+  background: var(--ivory);
+  border-top: 1px solid var(--line);
+}
+.work-actions .btn { flex: 1; }
 
 /* ================================================================ shortlist */
 .slrow {

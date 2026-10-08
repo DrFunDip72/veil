@@ -159,6 +159,40 @@ async function main() {
   const pct = await evaluate(ws, `document.querySelector('.mc-ring span').textContent`);
   check('match percentage shown', /\d/.test(pct), pct);
 
+  /* The decision path a real user takes: judge the work before committing.
+   * This is the flow that was broken - one photo behind an invisible tap
+   * target, and the only way to see more was leaving the queue. */
+  console.log('\nJudging her work before deciding');
+  const thumbs = await evaluate(ws,
+    `document.querySelectorAll('#deck .matchcard:last-child .mc-thumb').length`);
+  check('every photo of the shoot is visible on the card', thumbs === 5, thumbs + ' thumbnails');
+
+  await evaluate(ws, `document.querySelectorAll('#deck .matchcard:last-child .mc-thumb')[3].click()`);
+  await sleep(500);
+  check('tapping a thumbnail swaps the main photo',
+    await evaluate(ws, `!!document.querySelector('#deck .matchcard:last-child .mc-thumb:nth-child(4).on')`) === true);
+
+  check('no price or budget pill competes with the photo',
+    await evaluate(ws, `(() => {
+      const c = document.querySelector('#deck .matchcard:last-child .mc-body');
+      return !/all in|in budget|No travel/i.test(c.textContent);
+    })()`) === true);
+
+  await evaluate(ws, `document.querySelector('#deck .matchcard:last-child .mc-opener').click()`);
+  await sleep(1200);
+  const cells = await evaluate(ws, `document.querySelectorAll('.work-cell').length`);
+  check('her whole body of work is one tap away', cells === 15, cells + ' photos');
+  check('all three shoot types are shown together',
+    await evaluate(ws, `['Engagements','Bridals','Wedding day']
+      .every(t => document.body.textContent.includes(t))`) === true);
+  check('she can be decided on without leaving for the profile',
+    await evaluate(ws, `!!document.querySelector('[data-decide="like"]')`) === true);
+
+  await evaluate(ws, `document.querySelector('[data-decide="pass"]').click()`);
+  await sleep(900);
+  check('deciding returns to the queue with the next photographer up',
+    await evaluate(ws, `!!document.querySelector('#deck .matchcard')`) === true);
+
   // Shortlist three via the real swipe buttons.
   for (let i = 0; i < 3; i++) {
     await evaluate(ws, `document.querySelector('[data-vote="like"]').click()`);

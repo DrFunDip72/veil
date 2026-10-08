@@ -25,7 +25,7 @@ Veil inverts it: **taste first, everything else second.**
 1. **Setup (3 taps)** — wedding date, venues, budget, which shoots you need.
 2. **Blind taste test** — 36 photos, one at a time, no metadata at all. Swipe right (my style), left (not me), up (obsessed).
 3. **Your style** — a named aesthetic ("Candid Film Muted"), the axes you actually chose on, and the payoff line: *"You swiped right on 3 of Hanna Reeve's photos before you knew her name."*
-4. **Matches** — photographer cards ranked by style fit, with 15 photos each across Engagements / Bridals / Wedding day, plus price, travel cost to *your* venues, and whether she is free on *your* date.
+4. **Matches** — photographer cards ranked by style fit. Every photo of the selected shoot is visible at once; tap the photo for her whole body of work, where you can shortlist or pass without leaving the queue.
 5. **Shortlist** — swiping right only saves. Nobody is contacted.
 6. **Compare** — 2 or 3 side by side, same shoot type, best value in each row marked.
 7. **Message** — a pre-written enquiry with your date, venues and her actual price for your package already filled in.
@@ -46,6 +46,8 @@ Swiping is for *discovery*. Compare is for *deciding*. Keeping those separate is
 ---
 
 ## Design decisions worth knowing
+
+**The swipe card is about her work and nothing else.** Price, travel and availability cannot be acted on until Shortlist and Compare, so putting them on the swipe card only competes with the photograph — and re-contaminates exactly the style judgement the blind test exists to protect. Blockers still show ("booked your date", "$300 over") because those change whether shortlisting her is worth it; reassurances ("in budget", "no travel fee") are noise and are gone.
 
 **Match % is style only.** Budget, travel and availability never touch the number. They are shown as badges and used to sink blocked photographers to the bottom of the list — but a 97% match who is $200 over budget still appears, because hiding her is how you lose the right answer.
 

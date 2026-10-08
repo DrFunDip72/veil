@@ -546,15 +546,12 @@
       'style="transform:scale(' + (1 - depth * 0.03) + ') translateY(' + (depth * -8) + 'px);z-index:' + (10 - depth) + '">' +
       '<div class="mc-gallery">' +
         photoHTML(photo, 800, 900) +
-        '<div class="mc-dots">' + photos.map((_, i) =>
-          '<i class="' + (i === g.index % photos.length ? 'on' : '') + '"></i>').join('') + '</div>' +
-        '<div class="mc-tapzone" data-tap="prev" style="left:0"></div>' +
-        '<div class="mc-tapzone" data-tap="next" style="right:0"></div>' +
+        '<div class="mc-opener" data-work="' + p.id + '"></div>' +
         '<div class="mc-tabs">' + D.SHOOTS.map(s =>
           '<button data-shoot="' + s.key + '" class="' + (s.key === g.shoot ? 'on' : '') + '">' +
           esc(s.short) + '</button>').join('') + '</div>' +
         '<div class="mc-ring">' +
-          '<svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="24" fill="rgba(28,16,24,0.45)" ' +
+          '<svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="24" fill="rgba(28,16,24,0.55)" ' +
             'stroke="rgba(255,255,255,0.3)" stroke-width="3"/>' +
             '<circle cx="27" cy="27" r="24" fill="none" stroke="#E7CDD2" stroke-width="3" ' +
             'stroke-linecap="round" stroke-dasharray="' + dash + ' ' + circ + '"/></svg>' +
@@ -563,19 +560,42 @@
         '<div class="stamp stamp--yes">Shortlist</div>' +
         '<div class="stamp stamp--no">Pass</div>' +
       '</div>' +
+
+      /* Every photo of this shoot, visible at once. One at a time behind an
+       * invisible tap target was not enough to judge a style on. */
+      '<div class="mc-strip">' + photos.map((ph, i) =>
+        '<button class="mc-thumb' + (i === g.index % photos.length ? ' on' : '') + '" ' +
+          'data-pick="' + i + '" aria-label="Photo ' + (i + 1) + '">' +
+          '<img src="' + D.photoURL(ph, 150, 190) + '" alt="" loading="lazy" ' +
+          'style="filter:' + E.photoFilter(ph.axes) + '">' +
+        '</button>').join('') + '</div>' +
+
       '<div class="mc-body">' +
         '<h2 class="mc-name">' + esc(displayName(p)) +
-          '<small>' + esc(p.base.toUpperCase()) + ' &middot; ' + p.weddings + ' WEDDINGS SHOT</small></h2>' +
+          '<small>' + esc(p.base.toUpperCase()) + '</small></h2>' +
         '<p class="mc-tagline">' + esc(p.tagline) + '</p>' +
-        badgesHTML(r) +
+        blockersHTML(r) +
         (r.blindLikes >= 2
-          ? '<div class="blind-flag">You swiped right on <b>' + r.blindLikes +
-            ' of her photos</b> in the blind test.</div>'
+          ? '<p class="mc-blind">&#9829; You picked <b>' + r.blindLikes +
+            '</b> of her photos blind</p>'
           : '') +
-        '<div style="margin-top:11px"><button class="linkbtn" data-open="' + p.id + '">' +
-          'See her full profile &rsaquo;</button></div>' +
+        '<button class="btn btn--ghost btn--card" data-work="' + p.id + '">' +
+          'See all ' + p.photos.length + ' of her photos</button>' +
       '</div>' +
     '</div>';
+  }
+
+  /* The swipe card asks one question: do you like her work. Price, travel and
+   * availability cannot be acted on until Shortlist and Compare, so showing
+   * them here only competes with the photo — and re-contaminates the style
+   * judgement the blind test exists to protect. Blockers still show, because
+   * "she is booked that day" genuinely changes whether shortlisting her is
+   * worth it. Reassurances ("in budget", "no travel fee") do not. */
+  function blockersHTML(r) {
+    const out = [];
+    if (r.avail.state === 'booked') out.push('<span class="badge-pill warn">Booked your date</span>');
+    if (r.overBudget > 0) out.push('<span class="badge-pill warn">' + money(r.overBudget) + ' over budget</span>');
+    return out.length ? '<div class="badges">' + out.join('') + '</div>' : '';
   }
 
   function badgesHTML(r) {
@@ -604,19 +624,88 @@
       render();
     }));
 
-    $$('[data-tap]', cardEl).forEach(z => z.addEventListener('click', ev => {
+    /* Explicit thumbnails instead of invisible left/right tap zones — the
+     * old ones were undiscoverable, so the card read as a single photo. */
+    $$('[data-pick]', cardEl).forEach(b => b.addEventListener('click', ev => {
       ev.stopPropagation();
-      const n = byId(pid).photos.filter(ph => ph.shoot === g.shoot).length;
-      g.index = (g.index + (z.dataset.tap === 'next' ? 1 : n - 1)) % n;
+      g.index = Number(b.dataset.pick);
       render();
     }));
 
-    const open = $('[data-open]', cardEl);
-    if (open) open.addEventListener('click', ev => {
+    $$('[data-work]', cardEl).forEach(b => b.addEventListener('click', ev => {
       ev.stopPropagation();
-      go('detail', { id: pid, from: 'matches' });
-    });
+      go('work', { id: pid });
+    }));
   }
+
+  /* --------------------------------------------------------- her work only
+   * Reached by tapping the photo on a match card. Deliberately NOT the full
+   * profile: at this point the only question is whether her work is the kind
+   * of work you want, so this is photographs and nothing else, and you can
+   * decide from here without ever losing your place in the queue.
+   */
+  screens.work = () => {
+    const p = byId(route.params.id);
+    if (!p) return screens.matches();
+    const r = ranked().find(x => x.photographer.id === p.id);
+    const shortlisted = S.shortlist.includes(p.id);
+
+    const sections = D.SHOOTS.map(s => {
+      const photos = p.photos.filter(ph => ph.shoot === s.key);
+      if (!photos.length) return '';
+      return '<h3 class="work-head">' + esc(s.label) +
+        '<small>' + photos.length + ' photos</small></h3>' +
+        '<div class="work-grid">' + photos.map(ph =>
+          '<div class="work-cell">' + photoHTML(ph, 500, 620) + '</div>').join('') + '</div>';
+    }).join('');
+
+    return {
+      nav: false,
+      locked: true,
+      topbar:
+        '<button class="iconbtn" data-go="matches">&#8249;</button>' +
+        '<div><h1 style="font-size:21px">' + esc(displayName(p)) + '</h1>' +
+          '<div class="sub">' + r.match + '% style match &middot; ' + esc(p.base) + '</div></div>',
+      html:
+        '<div class="work-scroll fade-in">' +
+          '<p class="mc-tagline" style="margin:0 0 14px">' + esc(p.tagline) + '</p>' +
+          (r.blindLikes >= 2
+            ? '<div class="blind-flag" style="margin:0 0 16px">You swiped right on <b>' +
+              r.blindLikes + ' of these</b> in the blind test, before you knew her name.</div>'
+            : '') +
+          sections +
+          '<div style="margin-top:20px">' +
+            '<button class="btn btn--paper" data-detail="' + p.id + '">' +
+              'Pricing, travel &amp; availability &rsaquo;</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="work-actions">' +
+          '<button class="btn btn--ghost" data-decide="pass">&#10005;&nbsp; Pass</button>' +
+          '<button class="btn" data-decide="like">' +
+            (shortlisted ? '&#9829;&nbsp; Shortlisted' : '&#9825;&nbsp; Shortlist') + '</button>' +
+        '</div>',
+      mount() {
+        $('[data-detail]').addEventListener('click', () =>
+          go('detail', { id: p.id, from: 'work', workId: p.id }));
+
+        $$('[data-decide]').forEach(b => b.addEventListener('click', () => {
+          if (b.dataset.decide === 'pass') {
+            S.seen[p.id] = 'pass';
+            const i = S.shortlist.indexOf(p.id);
+            if (i >= 0) S.shortlist.splice(i, 1);
+            toast('Passed');
+          } else {
+            S.seen[p.id] = 'shortlist';
+            if (!S.shortlist.includes(p.id)) S.shortlist.unshift(p.id);
+            toast('Added to your shortlist');
+          }
+          save();
+          go('matches');
+        }));
+      },
+    };
+  };
 
   /* ---------------------------------------------------------- full profile */
   screens.detail = () => {
@@ -700,7 +789,11 @@
           '</div>' +
         '</div>',
       mount() {
-        $('[data-back]').addEventListener('click', () => go(route.params.from || 'matches'));
+        $('[data-back]').addEventListener('click', () => {
+          const from = route.params.from || 'matches';
+          // "work" needs to know which photographer to go back to.
+          go(from, from === 'work' ? { id: route.params.workId || p.id } : {});
+        });
         $$('[data-dshoot]').forEach(b => b.addEventListener('click', () => {
           g.shoot = b.dataset.dshoot; g.index = 0; render();
         }));
