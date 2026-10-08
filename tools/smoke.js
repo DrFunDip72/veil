@@ -75,6 +75,21 @@ async function main() {
     setTimeout(resolve, 20000);
   });
 
+  /* Start from a genuinely cold cache.
+   *
+   * Without this the run can execute a PREVIOUS build's JavaScript from the
+   * service worker or the HTTP cache, so the suite reports failures that are
+   * not in the code — or worse, passes code that is no longer there. It also
+   * makes the service-worker checks below test a real first visit. */
+  await load(BASE + '/');
+  await evaluate(ws, `(async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+  })()`);
+  await send(ws, 'Network.setCacheDisabled', { cacheDisabled: true });
+
   console.log('Loading ' + BASE);
   await load(BASE + '/');
   await evaluate(ws, `localStorage.clear()`);
