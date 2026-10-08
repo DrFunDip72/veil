@@ -644,6 +644,10 @@
         '<div class="view-pad fade-in" style="padding-top:0">' +
           '<div class="hero">' + photoHTML(hero, 900, 1125) +
             '<button class="back" data-back>&#8249;</button></div>' +
+          (creditLine(hero)
+            ? '<p style="font-size:10.5px;color:var(--ink-faint);margin:7px 0 0;text-align:right">' +
+              creditLine(hero) + '</p>'
+            : '') +
 
           '<div class="shoot-switch">' + D.SHOOTS.map(s =>
             '<button data-dshoot="' + s.key + '" class="' + (s.key === g.shoot ? 'on' : '') + '">' +
@@ -1063,12 +1067,16 @@
             '<button class="btn btn--paper" data-edit>Edit my details</button>' +
             '<button class="btn btn--paper" data-retake>Retake the taste test</button>' +
             '<button class="btn btn--paper" data-go="pro">I\'m a photographer</button>' +
+            '<button class="btn btn--paper" data-go="credits">Photo credits</button>' +
             '<button class="btn btn--paper" id="install-btn" style="display:none">Add Veil to my home screen</button>' +
             '<button class="btn btn--danger" data-reset>Reset everything</button>' +
           '</div>' +
 
-          '<div class="note">Prototype build. Photographers, prices and photos are placeholder data &mdash; ' +
-          'the matching maths, travel costs and availability checks are real.</div>' +
+          '<div class="note">Prototype build. The studios, prices and calendars are invented. ' +
+          (D.USING_REAL_PHOTOS
+            ? 'The photographs are real work by real photographers &mdash; see Photo credits.'
+            : 'The photographs are placeholder stock, not wedding work.') +
+          ' The matching maths, travel costs and availability checks are real.</div>' +
         '</div>',
       mount() {
         $('[data-edit]').addEventListener('click', () => { setupStep = 0; go('setup'); });
@@ -1081,6 +1089,63 @@
         });
         wireInstallButton();
       },
+    };
+  };
+
+  /* ------------------------------------------------------------- credits
+   * Unsplash's API Terms require crediting the photographer and Unsplash.
+   * The blind phase shows no metadata about anyone by design, so the credit
+   * lives here and on each revealed profile rather than over the swipe deck.
+   */
+  const UTM = '?utm_source=veil&utm_medium=referral';
+
+  function creditLine(photo) {
+    if (!photo || !photo.by) return '';
+    const who = photo.username
+      ? '<a href="https://unsplash.com/@' + esc(photo.username) + UTM + '" target="_blank" rel="noopener">' +
+        esc(photo.by) + '</a>'
+      : esc(photo.by);
+    return 'Photo by ' + who +
+      ' on <a href="https://unsplash.com/' + UTM + '" target="_blank" rel="noopener">Unsplash</a>';
+  }
+
+  screens.credits = () => {
+    const lib = D.PHOTO_LIBRARY || [];
+    const byCreator = {};
+    lib.forEach(ph => {
+      const key = ph.u || ph.by;
+      if (!byCreator[key]) byCreator[key] = { by: ph.by, u: ph.u, n: 0 };
+      byCreator[key].n++;
+    });
+    const creators = Object.values(byCreator).sort((a, b) => b.n - a.n);
+
+    return {
+      nav: false,
+      topbar:
+        '<button class="iconbtn" data-go="me">&#8249;</button>' +
+        '<div><h1>Photo credits</h1><div class="sub">' +
+          (creators.length ? creators.length + ' photographers' : 'Placeholder imagery') +
+        '</div></div>',
+      html:
+        '<div class="view-pad fade-in">' +
+          (D.USING_REAL_PHOTOS
+            ? '<p class="lede" style="margin-top:0">Every photograph in Veil is real work by a real ' +
+              'photographer, used under the Unsplash License. <b>The studios in this app are ' +
+              'fictional</b> &mdash; the names, prices and calendars are demo data, and no photographer ' +
+              'below is connected to them.</p>' +
+              '<p class="lede">Photos on <a href="https://unsplash.com/' + UTM + '" target="_blank" ' +
+              'rel="noopener">Unsplash</a> by:</p>' +
+              '<div class="card" style="padding:4px 16px;margin-top:14px">' +
+                creators.map(c =>
+                  '<div class="pr"><span>' +
+                    (c.u ? '<a href="https://unsplash.com/@' + esc(c.u) + UTM + '" target="_blank" ' +
+                      'rel="noopener">' + esc(c.by) + '</a>' : esc(c.by)) +
+                  '</span><small>' + c.n + ' photo' + (c.n === 1 ? '' : 's') + '</small></div>').join('') +
+              '</div>'
+            : '<p class="lede" style="margin-top:0">This build is running on placeholder stock ' +
+              'imagery, not wedding photography. Run <code>tools/fetch-photos.js</code> with an ' +
+              'Unsplash access key to load the real library.</p>') +
+        '</div>',
     };
   };
 

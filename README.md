@@ -76,6 +76,7 @@ On a desktop browser the app is deliberately drawn inside a phone frame. The fra
 
 ```bash
 node test/engine.test.js                          # matching, pricing, travel, availability, edge cases
+node test/photos.test.js                          # photo assignment, style-drift guard, credits
 node tools/check-pwa.js https://veilphoto.vercel.app   # installability: manifest, icons, precache
 node tools/smoke.js      https://veilphoto.vercel.app   # drives a real browser against a live origin
 ```
@@ -106,7 +107,8 @@ swipe button faster than the exit animation to prove votes are never double-comm
 
 | File | What it is |
 |---|---|
-| `data.js` | 14 fictional Utah photographers, 15 photos each, venues, style axes |
+| `data.js` | 14 fictional Utah photographers, venues, style axes, photo assignment |
+| `photos.js` | Generated photo library with measured style values (see Photography) |
 | `engine.js` | Matching, pricing, travel and availability maths. No DOM. |
 | `app.js` | Screens, routing, swipe gestures |
 | `styles.css` | Design system + the desktop phone frame |
@@ -117,7 +119,28 @@ swipe button faster than the exit animation to prove votes are never double-comm
 
 **Real:** the matching maths, haversine travel-cost calculation against actual Utah venue coordinates, bundle-vs-à-la-carte pricing logic, availability checks, the whole interaction model.
 
-**Placeholder:** the 14 photographers are invented (prices are sized to the real Utah 2026 range, but they are not quotes). **The photos are random stock images, not wedding photography** — they prove out layout and loading, nothing more. To preview with real portfolios, drop files at `photos/<photographerId>/<shoot>-<0..4>.jpg` and flip `USE_LOCAL_PHOTOS` in `data.js`. Nothing else changes.
+**Placeholder:** the 14 photographers are invented (prices are sized to the real Utah 2026 range, but they are not quotes).
+
+## Photography
+
+The app ships with a stub `photos.js` and falls back to generic stock images. To load real wedding photography:
+
+```powershell
+# 1. https://unsplash.com/developers -> Your apps -> New Application -> copy the Access Key
+# 2. Chrome must be running with --remote-debugging-port=9222 (it decodes the images)
+$env:UNSPLASH_ACCESS_KEY = "..."
+node tools/fetch-photos.js
+```
+
+That fetches ~350 engagement / bridal / wedding photos across 16 deliberately-chosen search buckets and writes `photos.js`. Nothing else changes — `data.js` picks it up automatically.
+
+**The photos are measured, not labelled.** Veil's blind taste test only means anything if a photo's recorded style matches what the photo actually looks like. Dropping in real images with invented axis values would leave a bright airy shot tagged "moody film" and the matching would be theatre. So `warmth`, `light`, `grain` and `color` are computed from each photo's own pixels (mean channel balance, luminance, saturation, high-frequency energy and shadow lift) in a headless Chrome canvas, then rank-normalised across the corpus so the axes actually span −1..1. `pose` and `scale` are not recoverable from pixels without a model, so they come from the search bucket each photo was found in.
+
+Each photographer then claims the five photos per shoot closest to her house style — and **her style vector is replaced by the centroid of the photos she actually ended up with**, so the match % always describes the portfolio on screen rather than a declared style that drifted away from it. `test/photos.test.js` guards that.
+
+**Licensing.** Only photo IDs and credits are committed; no image is redistributed. The app hotlinks `images.unsplash.com`, which is what the Unsplash License is built for. Their *API Terms* additionally require crediting the photographer and Unsplash — hence the credits screen under **You › Photo credits**, the credit under each revealed profile, and the explicit note that the studios are fictional and unconnected to the real photographers.
+
+For your own wedding decision you can instead point it at portfolios of photographers you are actually considering: drop files at `photos/<photographerId>/<shoot>-<0..4>.jpg` and flip `USE_LOCAL_PHOTOS` in `data.js`. That is copyrighted work, so keep that build local — never deploy it.
 
 ## Not built yet
 

@@ -16,6 +16,7 @@ const SHELL_FILES = [
   './',
   './index.html',
   './styles.css',
+  './photos.js',
   './data.js',
   './engine.js',
   './app.js',
