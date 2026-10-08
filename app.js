@@ -12,7 +12,7 @@
   /* ------------------------------------------------------------------ state */
   const DEFAULT_STATE = {
     onboarded: false,
-    prefs: { date: '', venueIds: [], shoots: ['engagements', 'bridals', 'weddings'], budgetMax: 3000 },
+    prefs: { date: '', regionId: '', shoots: ['engagements', 'bridals', 'weddings'], budgetMax: 3000 },
     swipes: [],          // [{ photoId, vote }]
     tasteDone: false,
     seen: {},            // photographerId -> 'shortlist' | 'pass'
@@ -48,10 +48,29 @@
       date: S.prefs.date,
       shoots: S.prefs.shoots,
       budgetMax: S.prefs.budgetMax,
-      venues: S.prefs.venueIds.map(id => D.VENUES.find(v => v.id === id)).filter(Boolean),
+      venues: weddingPlaces(),
     };
   }
   function ranked() { return E.rankMatches(profile(), prefsForEngine()); }
+
+  /* The engine takes a list of places to compute travel against. That used to
+   * be up to three hand-picked venues; it is now the one region she chose.
+   * Anything saved under the old shape still resolves, so nobody's stored
+   * setup breaks on upgrade. */
+  function weddingPlaces() {
+    const region = D.REGIONS.find(r => r.id === S.prefs.regionId);
+    if (region) return [region];
+    if (S.prefs.venueIds && S.prefs.venueIds.length) {
+      return S.prefs.venueIds.map(id => D.VENUES.find(v => v.id === id)).filter(Boolean);
+    }
+    return [];
+  }
+
+  function regionName() {
+    const places = weddingPlaces();
+    if (!places.length) return 'Not set';
+    return places.map(v => v.name).join(', ');
+  }
 
   /* --------------------------------------------------------------- helpers */
   const $ = (sel, root) => (root || document).querySelector(sel);
@@ -127,45 +146,125 @@
   /* ------------------------------------------------------------------ setup */
   let setupStep = 0;
 
+  /* ------------------------------------------------------------- calendar
+   * A real month grid rather than <input type="date">. The native control
+   * renders as a different ugly box on every platform, which is the one
+   * thing a wedding app cannot afford on its first screen.
+   */
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  let calView = null; // { y, m } — the month on screen
+
+  const isoOf = (y, m, d) =>
+    y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+
+  function calendarHTML() {
+    const today = new Date();
+    const todayISO = isoOf(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (!calView) {
+      const sel = S.prefs.date ? S.prefs.date.split('-').map(Number) : null;
+      calView = sel
+        ? { y: sel[0], m: sel[1] - 1 }
+        : { y: today.getFullYear(), m: today.getMonth() };
+    }
+
+    const { y, m } = calView;
+    const first = new Date(y, m, 1).getDay();
+    const days = new Date(y, m + 1, 0).getDate();
+    // Can she still go back a month, or is that entirely in the past?
+    const atFloor = y < today.getFullYear() ||
+      (y === today.getFullYear() && m <= today.getMonth());
+
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += '<span class="cal-pad"></span>';
+    for (let d = 1; d <= days; d++) {
+      const iso = isoOf(y, m, d);
+      const past = iso < todayISO;
+      const cls = ['cal-day'];
+      if (iso === S.prefs.date) cls.push('on');
+      if (iso === todayISO) cls.push('today');
+      if (past) cls.push('off');
+      cells += '<button class="' + cls.join(' ') + '"' +
+        (past ? ' disabled' : ' data-day="' + iso + '"') + '>' + d + '</button>';
+    }
+
+    return '<div class="cal">' +
+      '<div class="cal-head">' +
+        '<button class="cal-nav" data-month="-1"' + (atFloor ? ' disabled' : '') +
+          ' aria-label="Previous month">&#8249;</button>' +
+        '<span class="cal-title">' + MONTHS[m] + ' ' + y + '</span>' +
+        '<button class="cal-nav" data-month="1" aria-label="Next month">&#8250;</button>' +
+      '</div>' +
+      '<div class="cal-dow">' +
+        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => '<span>' + d + '</span>').join('') +
+      '</div>' +
+      '<div class="cal-grid">' + cells + '</div>' +
+    '</div>';
+  }
+
+  function wireCalendar(onPick) {
+    $$('[data-month]').forEach(b => b.addEventListener('click', () => {
+      const step = Number(b.dataset.month);
+      let { y, m } = calView;
+      m += step;
+      if (m < 0) { m = 11; y--; }
+      if (m > 11) { m = 0; y++; }
+      calView = { y, m };
+      render();
+    }));
+
+    $$('[data-day]').forEach(b => b.addEventListener('click', () => {
+      S.prefs.date = b.dataset.day;
+      save();
+      render();
+      if (onPick) onPick();
+    }));
+  }
+
   screens.setup = () => {
     const p = S.prefs;
-    const venueChips = D.VENUES.map(v =>
-      '<button class="chip' + (p.venueIds.includes(v.id) ? ' on' : '') + '" data-venue="' + v.id + '">' +
-        esc(v.name) + '<small>' + esc(v.city) + '</small></button>').join('');
 
-    const shootChips = D.SHOOTS.map(s =>
-      '<button class="chip' + (p.shoots.includes(s.key) ? ' on' : '') + '" data-shoot="' + s.key + '">' +
-        esc(s.label) + '<small>' + esc(s.blurb) + '</small></button>').join('');
+    const regionChips = D.REGIONS.map(r =>
+      '<button class="chip' + (p.regionId === r.id ? ' on' : '') + '" data-region="' + r.id + '">' +
+        esc(r.name) + '<small>' + esc(r.hint) + '</small></button>').join('');
 
+    const shootChips = D.SHOOTS.map(sh =>
+      '<button class="chip chip--wide' + (p.shoots.includes(sh.key) ? ' on' : '') +
+        '" data-shoot="' + sh.key + '">' +
+        esc(sh.label) + '<small>' + esc(sh.blurb) + '</small></button>').join('');
+
+    /* Two steps, not three. The date gets a screen of its own because it is
+     * the only hard blocker — a booked photographer cannot be hired at any
+     * price. Everything else is one gesture each, so it shares a screen. */
     const panes = [
       '<p class="eyebrow">Step one</p>' +
-      '<h2 class="display" style="font-size:33px">When is the<br><em>wedding?</em></h2>' +
-      '<p class="lede">Veil checks it against every photographer\'s calendar so you never fall for someone who is already booked.</p>' +
-      '<div class="field"><label>Wedding date</label>' +
-        '<input type="date" id="f-date" value="' + esc(p.date) + '" min="2026-10-06"></div>',
+      '<h2 class="display" style="font-size:32px">When is the<br><em>wedding?</em></h2>' +
+      calendarHTML() +
+      (p.date
+        ? '<p class="cal-picked">' + esc(fmtDate(p.date, true)) + '</p>'
+        : '<p class="cal-picked cal-picked--empty">Pick a day to continue</p>'),
 
       '<p class="eyebrow">Step two</p>' +
-      '<h2 class="display" style="font-size:33px">Where are you<br><em>shooting?</em></h2>' +
-      '<p class="lede">Pick your ceremony, your reception and anywhere you want photos. Travel fees get calculated from these.</p>' +
-      '<div class="chips" style="margin-top:18px">' + venueChips + '</div>',
+      '<h2 class="display" style="font-size:32px">A couple of<br><em>details.</em></h2>' +
 
-      '<p class="eyebrow">Step three</p>' +
-      '<h2 class="display" style="font-size:33px">What do you<br><em>need, and for<br>how much?</em></h2>' +
-      '<div class="chips" style="margin-top:18px">' + shootChips + '</div>' +
-      '<div class="field" style="margin-top:26px">' +
+      '<label class="field-label">Where are you getting married?</label>' +
+      '<div class="chips">' + regionChips + '</div>' +
+
+      '<label class="field-label" style="margin-top:22px">What do you need shot?</label>' +
+      '<div class="chips">' + shootChips + '</div>' +
+
+      '<div class="field" style="margin-top:22px">' +
         '<label>Total photography budget &mdash; <b id="budget-label">' + money(p.budgetMax) + '</b></label>' +
         '<input type="range" id="f-budget" min="800" max="6000" step="100" value="' + p.budgetMax + '">' +
         '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint)">' +
           '<span>$800</span><span>$6,000+</span></div>' +
-      '</div>' +
-      '<div class="note">Budget never changes a match score. It only flags who is over, so a perfect-fit ' +
-      'photographer who is $200 out of range still shows up instead of silently vanishing.</div>',
+      '</div>',
     ];
 
     const canNext = [
-      () => !!$('#f-date') && !!$('#f-date').value,
-      () => p.venueIds.length > 0,
-      () => p.shoots.length > 0,
+      () => !!p.date,
+      () => !!p.regionId && p.shoots.length > 0,
     ];
 
     return {
@@ -176,26 +275,22 @@
         '<button class="linkbtn" data-skip-setup>Skip</button>',
       html:
         '<div class="view-pad fade-in">' +
-          '<div class="steps">' + [0, 1, 2].map(i =>
+          '<div class="steps">' + [0, 1].map(i =>
             '<i class="' + (i <= setupStep ? 'on' : '') + '"></i>').join('') + '</div>' +
           panes[setupStep] +
-          '<div style="margin-top:28px"><button class="btn" id="setup-next">' +
-            (setupStep === 2 ? 'Start the taste test' : 'Continue') + '</button></div>' +
+          '<div style="margin-top:24px"><button class="btn" id="setup-next">' +
+            (setupStep === 1 ? 'Start the taste test' : 'Continue') + '</button></div>' +
         '</div>',
       mount() {
         const next = $('#setup-next');
         const sync = () => { next.disabled = !canNext[setupStep](); };
         sync();
 
-        const dateEl = $('#f-date');
-        if (dateEl) dateEl.addEventListener('change', () => { S.prefs.date = dateEl.value; save(); sync(); });
+        wireCalendar();
 
-        $$('[data-venue]').forEach(b => b.addEventListener('click', () => {
-          const id = b.dataset.venue;
-          const i = S.prefs.venueIds.indexOf(id);
-          if (i >= 0) S.prefs.venueIds.splice(i, 1); else S.prefs.venueIds.push(id);
-          b.classList.toggle('on');
-          save(); sync();
+        $$('[data-region]').forEach(b => b.addEventListener('click', () => {
+          S.prefs.regionId = b.dataset.region;
+          save(); render();
         }));
 
         $$('[data-shoot]').forEach(b => b.addEventListener('click', () => {
@@ -214,16 +309,21 @@
         });
 
         next.addEventListener('click', () => {
-          if (setupStep < 2) { setupStep++; render(); }
+          if (setupStep < 1) { setupStep++; render(); }
           else { S.onboarded = true; save(); setupStep = 0; go('taste'); }
         });
 
         $('[data-setup-back]').addEventListener('click', () => {
           if (setupStep > 0) { setupStep--; render(); } else go('welcome');
         });
+
         $('[data-skip-setup]').addEventListener('click', () => {
-          if (!S.prefs.date) S.prefs.date = '2027-06-12';
-          if (!S.prefs.venueIds.length) S.prefs.venueIds = ['provo-temple', 'bridal-veil', 'oak-hills'];
+          if (!S.prefs.date) {
+            const d = new Date();
+            d.setMonth(d.getMonth() + 9);
+            S.prefs.date = isoOf(d.getFullYear(), d.getMonth(), d.getDate());
+          }
+          if (!S.prefs.regionId) S.prefs.regionId = 'utah-county';
           S.onboarded = true; save(); setupStep = 0; go('taste');
         });
       },
@@ -753,7 +853,7 @@
           '<div class="card" style="padding:4px 16px">' +
             detailRow('Your date', r.avail.note) +
             detailRow('Travel', r.travel.unknown ? r.travel.note :
-              r.travel.maxMiles + ' mi to your farthest spot (' + esc(r.travel.farthest.name) + ')') +
+              r.travel.maxMiles + ' mi from ' + esc(r.photographer.base) + ' to ' + esc(regionName())) +
             detailRow('Turnaround', p.turnaround) +
             detailRow('You get', p.delivers) +
             detailRow('Second shooter', p.secondShooter) +
@@ -984,12 +1084,12 @@
 
   function draftInquiry(p) {
     const shoots = S.prefs.shoots.map(k => D.SHOOTS.find(s => s.key === k).label.toLowerCase());
-    const venues = S.prefs.venueIds.map(id => D.VENUES.find(v => v.id === id)).filter(Boolean);
+    const venues = weddingPlaces();
     const r = ranked().find(x => x.photographer.id === p.id);
 
     return 'Hi ' + p.name.split(' ')[0] + '! I found you on Veil — we came out at a ' + r.match +
       '% style match.\n\nWe are getting married ' + fmtDate(S.prefs.date, true) +
-      (venues.length ? ', at ' + listJoin(venues.map(v => v.name)) : '') + '.\n\n' +
+      (venues.length ? ' in ' + listJoin(venues.map(v => v.name)) : '') + '.\n\n' +
       'I am looking for ' + listJoin(shoots) + '. Your ' + r.price.label.toLowerCase() +
       ' comes to ' + money(r.allIn) + ' all in for us' +
       (r.travel.fee ? ' (including ' + money(r.travel.fee) + ' travel)' : '') +
@@ -1109,7 +1209,7 @@
   /* --------------------------------------------------------------------- me */
   screens.me = () => {
     const pr = profile();
-    const venues = S.prefs.venueIds.map(id => D.VENUES.find(v => v.id === id)).filter(Boolean);
+    const venues = weddingPlaces();
 
     return {
       nav: true,
@@ -1137,7 +1237,7 @@
           '<h3 class="section-title">Your wedding</h3>' +
           '<div class="card" style="padding:4px 16px">' +
             detailRow('Date', fmtDate(S.prefs.date, true)) +
-            detailRow('Locations', venues.length ? venues.map(v => v.name).join(', ') : 'None set') +
+            detailRow('Area', regionName()) +
             detailRow('Shoots', S.prefs.shoots.map(k => D.SHOOTS.find(s => s.key === k).label).join(', ')) +
             detailRow('Budget', money(S.prefs.budgetMax)) +
           '</div>' +

@@ -22,7 +22,7 @@ Veil inverts it: **taste first, everything else second.**
 
 ## How it works
 
-1. **Setup (3 taps)** — wedding date, venues, budget, which shoots you need.
+1. **Setup (2 steps)** — the date on a real calendar, then area, shoots and budget. The date gets a screen to itself because it is the only *hard* blocker: a booked photographer cannot be hired at any price. Location is one **region**, not a venue list — a bride has a date long before she has booked a hall, and travel cost barely moves between venues in the same county.
 2. **Blind taste test** — 36 photos, one at a time, no metadata at all. Swipe right (my style), left (not me), up (obsessed).
 3. **Your matches** — straight to the answer: your closest three, tappable, with the payoff line *"You picked 2 of her photos blind."* The style name is one line; the full axis breakdown lives in **You**, because it is reference material, not what anyone wants the second they stop swiping.
 4. **Matches** — a ranked list, best fit first. Tap any card for her whole body of work; tap any photo there for full screen. Save with the heart, or from inside her work.
@@ -81,6 +81,7 @@ On a desktop browser the app is deliberately drawn inside a phone frame. The fra
 ```bash
 node test/engine.test.js                          # matching, pricing, travel, availability, edge cases
 node test/photos.test.js                          # photo assignment, style-drift guard, credits
+node tools/check-setup.js http://localhost:8123        # calendar, region picker, downstream copy
 node tools/check-pwa.js https://veilphoto.vercel.app   # installability: manifest, icons, precache
 node tools/smoke.js      https://veilphoto.vercel.app   # drives a real browser against a live origin
 ```

@@ -64,6 +64,20 @@ const VENUES = [
   { id: 'sleepy-ridge',    name: 'Sleepy Ridge',         city: 'Orem',           coords: [40.3100, -111.7400], kind: 'reception' },
 ];
 
+/* Where she is getting married, at the only resolution she actually has
+ * early on. A bride has a date long before she has booked a reception hall,
+ * and travel cost barely moves between venues inside the same county — a
+ * Provo photographer is free anywhere in Utah County and charges for St.
+ * George regardless of which hall it is. One tap instead of twenty. */
+const REGIONS = [
+  { id: 'utah-county', name: 'Utah County',   hint: 'Provo, Orem, Lehi',      coords: [40.2969, -111.6946] },
+  { id: 'salt-lake',   name: 'Salt Lake',     hint: 'SLC, Sandy, Draper',     coords: [40.7608, -111.8910] },
+  { id: 'park-city',   name: 'Park City',     hint: 'Heber, Midway',          coords: [40.6461, -111.4980] },
+  { id: 'northern',    name: 'Northern Utah', hint: 'Ogden, Logan',           coords: [41.2230, -111.9738] },
+  { id: 'southern',    name: 'Southern Utah', hint: 'St. George, Cedar City', coords: [37.0965, -113.5684] },
+  { id: 'elsewhere',   name: 'Somewhere else',hint: 'Destination, out of state', coords: [40.2969, -111.6946] },
+];
+
 const SHOOTS = [
   { key: 'engagements', label: 'Engagements', short: 'Eng',    blurb: 'The announcement photos' },
   { key: 'bridals',     label: 'Bridals',     short: 'Bridal', blurb: 'Just you, in the dress' },
@@ -496,7 +510,7 @@ function milesBetween(a, b) {
 }
 
 const VEIL_DATA = {
-  AXES, AXIS_KEYS, VENUES, SHOOTS, PHOTOGRAPHERS, PHOTO_SRC, photoURL, USE_LOCAL_PHOTOS,
+  AXES, AXIS_KEYS, VENUES, REGIONS, SHOOTS, PHOTOGRAPHERS, PHOTO_SRC, photoURL, USE_LOCAL_PHOTOS,
   PHOTO_LIBRARY, USING_REAL_PHOTOS, assignRealPhotos, buildPhotos,
   buildTasteDeck, milesBetween, hashStr, mulberry32,
 };

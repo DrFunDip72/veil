@@ -136,29 +136,30 @@ async function main() {
   await imagesSettled(ws);
   await shootDevice(ws, '1-welcome.png');
 
-  /* ---------------------------------------------------- 2. setup */
+  /* ------------------------------------------- 2. setup: date, then details */
   console.log('setup');
   await evaluate(ws, `document.querySelector('[data-go="setup"]').click()`);
-  await sleep(300);
-  await evaluate(ws, `(() => {
-    const d = document.querySelector('#f-date');
-    d.value = '2027-06-12';
-    d.dispatchEvent(new Event('change'));
-    document.querySelector('#setup-next').click();
-  })()`);
+  await sleep(400);
+  // Jump the calendar forward so the shot is not of a half-empty month.
+  await evaluate(ws, `document.querySelector('.cal-nav[data-month="1"]').click()`);
   await sleep(350);
-  await shootDevice(ws, '2-setup-venues.png');
+  await evaluate(ws, `(() => {
+    const d = [...document.querySelectorAll('[data-day]')];
+    d[Math.min(19, d.length - 1)].click();
+  })()`);
+  await sleep(450);
+  await shootDevice(ws, '2-setup-date.png');
+
+  await evaluate(ws, `document.querySelector('#setup-next').click()`);
+  await sleep(450);
+  await evaluate(ws, `document.querySelector('[data-region="utah-county"]').click()`);
+  await sleep(450);
+  await shootDevice(ws, '2b-setup-details.png');
 
   /* ---------------------------------------------------- 3. taste test */
   console.log('taste test');
-  await evaluate(ws, `(() => {
-    ['provo-temple','bridal-veil','oak-hills'].forEach(id =>
-      document.querySelector('[data-venue="' + id + '"]').click());
-    document.querySelector('#setup-next').click();
-  })()`);
-  await sleep(300);
   await evaluate(ws, `document.querySelector('#setup-next').click()`);
-  await sleep(600);
+  await sleep(700);
   await imagesSettled(ws);
   await shootDevice(ws, '3-taste-blind.png');
 
@@ -220,7 +221,7 @@ async function main() {
         return idx;
       })()),
       { date: raw.prefs.date, shoots: raw.prefs.shoots, budgetMax: raw.prefs.budgetMax,
-        venues: raw.prefs.venueIds.map(id => VEIL_DATA.VENUES.find(v => v.id === id)) }
+        venues: [VEIL_DATA.REGIONS.find(r => r.id === raw.prefs.regionId)].filter(Boolean) }
     );
     const top = rank.slice(0, 4).map(r => r.photographer.id);
     raw.shortlist = top;
