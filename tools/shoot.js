@@ -187,13 +187,19 @@ async function main() {
   await imagesSettled(ws);
   await shootDevice(ws, '5-matches.png');
 
-  /* ---------------------------------------------------- 6. full profile */
-  console.log('profile');
-  // Only the top card of the deck is wired up; the one behind it is inert.
-  await evaluate(ws, `document.querySelector('#deck .matchcard:last-child [data-open]').click()`);
-  await sleep(500);
+  /* ------------------------------------------------- 6. her work, then profile
+   * Only the top card of the deck is wired up; the one behind it is inert. */
+  console.log('her work');
+  await evaluate(ws, `document.querySelector('#deck .matchcard:last-child .mc-opener').click()`);
+  await sleep(700);
   await imagesSettled(ws);
-  await shootDevice(ws, '6-profile.png');
+  await shootDevice(ws, '6-her-work.png');
+
+  console.log('profile');
+  await evaluate(ws, `document.querySelector('[data-detail]').click()`);
+  await sleep(600);
+  await imagesSettled(ws);
+  await shootDevice(ws, '7-profile.png');
 
   /* ---------------------------------------------------- 7. shortlist */
   console.log('shortlist + compare');
@@ -221,31 +227,31 @@ async function main() {
   await evaluate(ws, `window.veilGo('shortlist')`);
   await sleep(400);
   await imagesSettled(ws);
-  await shootDevice(ws, '7-shortlist.png');
+  await shootDevice(ws, '8-shortlist.png');
 
   /* ---------------------------------------------------- 8. compare */
   await evaluate(ws, `window.veilGo('compare')`);
   await sleep(450);
   await imagesSettled(ws);
-  await shootDevice(ws, '8-compare.png');
+  await shootDevice(ws, '9-compare.png');
 
   /* ---------------------------------------------------- 9. message */
   console.log('message');
   await evaluate(ws, `document.querySelector('[data-pick]').click()`);
   await sleep(500);
   await imagesSettled(ws);
-  await shootDevice(ws, '9-message.png');
+  await shootDevice(ws, '10-message.png');
 
   console.log('credits');
   await evaluate(ws, `window.veilGo('credits')`);
   await sleep(400);
-  await shootDevice(ws, '11-credits.png');
+  await shootDevice(ws, '12-credits.png');
 
   /* ---------------------------------------------------- 10. pro side */
   console.log('photographer side');
   await evaluate(ws, `window.veilGo('pro')`);
   await sleep(400);
-  await shootDevice(ws, '10-photographer.png');
+  await shootDevice(ws, '11-photographer.png');
 
   if (errors.length) {
     console.log('\nPAGE ERRORS:');
