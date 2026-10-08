@@ -77,6 +77,13 @@ const check = (label, pass, detail) => {
     await evaluate(ws, `!!document.querySelector('.cal-picked') &&
       !document.querySelector('.cal-picked--empty')`) === true);
   check('continue unlocks', await evaluate(ws, `!document.querySelector('#setup-next').disabled`) === true);
+  const calTap = await evaluate(ws, `(async () => {
+    document.querySelector('.view-pad').dataset.marker = 'kept';
+    document.querySelector('[data-day]').click();
+    await new Promise(r => setTimeout(r, 350));
+    return !document.querySelector('.view-pad[data-marker="kept"]');
+  })()`);
+  check('picking a day does not rebuild the screen', calTap === false);
   await shot('setup-2-picked.png');
 
   console.log('\nStep two: the details');
@@ -98,6 +105,29 @@ const check = (label, pass, detail) => {
   check('choosing a region unlocks the finish',
     await evaluate(ws, `!document.querySelector('#setup-next').disabled`) === true);
   await shot('setup-3-details.png');
+
+  /* A tap that changes one element must patch the DOM, not call the
+   * top-level render(). A full render replays the fade-in and resets the
+   * scroll, which reads as the page flashing and jumping under your thumb. */
+  console.log('\nIn-place taps must not rebuild the screen');
+  const regionTap = await evaluate(ws, `(async () => {
+    document.querySelector('.view-pad').dataset.marker = 'kept';
+    document.querySelector('[data-region="salt-lake"]').click();
+    await new Promise(r => setTimeout(r, 350));
+    return {
+      rebuilt: !document.querySelector('.view-pad[data-marker="kept"]'),
+      selected: document.querySelector('[data-region="salt-lake"]').classList.contains('on'),
+      onlyOne: document.querySelectorAll('[data-region].on').length === 1,
+      nextEnabled: !document.querySelector('#setup-next').disabled,
+    };
+  })()`);
+  check('choosing a region does not rebuild the screen', regionTap.rebuilt === false);
+  check('the chosen region is the only one selected',
+    regionTap.selected && regionTap.onlyOne);
+  check('continue stays enabled after switching region', regionTap.nextEnabled === true);
+  // Put Utah County back for the downstream copy checks.
+  await evaluate(ws, `document.querySelector('[data-region="utah-county"]').click()`);
+  await sleep(300);
 
   console.log('\nSetup is two steps, not three');
   check('only two progress pips',

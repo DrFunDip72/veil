@@ -203,7 +203,24 @@
     '</div>';
   }
 
-  function wireCalendar(onPick) {
+  /* Redraws only the calendar block.
+   *
+   * Calling the top-level render() for a tap that changes one element rebuilds
+   * the whole screen: the fade-in animation replays and the scroll position
+   * resets, which reads as the page flashing and jumping under your thumb.
+   * Anything that changes state without changing *which screen you are on*
+   * should patch the DOM in place. */
+  function wireCalendar(onChange) {
+    const redraw = () => {
+      const host = $('.cal');
+      if (!host) return;
+      const holder = document.createElement('div');
+      holder.innerHTML = calendarHTML();
+      host.replaceWith(holder.firstElementChild);
+      wireCalendar(onChange);
+      if (onChange) onChange();
+    };
+
     $$('[data-month]').forEach(b => b.addEventListener('click', () => {
       const step = Number(b.dataset.month);
       let { y, m } = calView;
@@ -211,14 +228,13 @@
       if (m < 0) { m = 11; y--; }
       if (m > 11) { m = 0; y++; }
       calView = { y, m };
-      render();
+      redraw();
     }));
 
     $$('[data-day]').forEach(b => b.addEventListener('click', () => {
       S.prefs.date = b.dataset.day;
       save();
-      render();
-      if (onPick) onPick();
+      redraw();
     }));
   }
 
@@ -286,11 +302,20 @@
         const sync = () => { next.disabled = !canNext[setupStep](); };
         sync();
 
-        wireCalendar();
+        wireCalendar(() => {
+          const line = $('.cal-picked');
+          if (line) {
+            line.textContent = S.prefs.date ? fmtDate(S.prefs.date, true) : 'Pick a day to continue';
+            line.classList.toggle('cal-picked--empty', !S.prefs.date);
+          }
+          sync();
+        });
 
+        /* Single-select, so clear the others rather than re-rendering. */
         $$('[data-region]').forEach(b => b.addEventListener('click', () => {
           S.prefs.regionId = b.dataset.region;
-          save(); render();
+          $$('[data-region]').forEach(x => x.classList.toggle('on', x === b));
+          save(); sync();
         }));
 
         $$('[data-shoot]').forEach(b => b.addEventListener('click', () => {
@@ -528,7 +553,10 @@
           '<h3 class="section-title">Your closest three</h3>' +
           top.map(r => matchCardHTML(r)).join('') +
 
-          '<div style="margin-top:6px">' +
+          /* Docked, not trailing. Three full-bleed cards put this button two
+           * whole screens down, so the way out of the screen was invisible
+           * exactly when she wanted it. */
+          '<div class="comparebar">' +
             '<button class="btn" data-go="matches">See all ' + rank.length + ' matches</button>' +
           '</div>' +
         '</div>',
@@ -623,13 +651,46 @@
       ev.stopPropagation();
       const id = b.dataset.save;
       const i = S.shortlist.indexOf(id);
-      if (i >= 0) { S.shortlist.splice(i, 1); delete S.seen[id]; toast('Removed'); }
-      else { S.shortlist.unshift(id); S.seen[id] = 'shortlist'; toast('Saved'); }
-      save(); render();
+      const nowSaved = i < 0;
+
+      if (nowSaved) { S.shortlist.unshift(id); S.seen[id] = 'shortlist'; }
+      else { S.shortlist.splice(i, 1); delete S.seen[id]; }
+      save();
+
+      /* Patch the heart rather than re-rendering. A full render rebuilt the
+       * list and snapped the scroll back to the top, so saving someone you
+       * had scrolled down to threw you away from her. */
+      $$('[data-save="' + id + '"]').forEach(x => {
+        x.classList.toggle('on', nowSaved);
+        x.innerHTML = nowSaved ? '&#9829;' : '&#9825;';
+        x.setAttribute('aria-label', nowSaved ? 'Saved' : 'Save');
+      });
+      refreshNavBadges();
+      toast(nowSaved ? 'Saved' : 'Removed');
     }));
 
     $$('.mcard[data-work]').forEach(c => c.addEventListener('click', () =>
       go('work', { id: c.dataset.work })));
+  }
+
+  /* Keeps the tab-bar counts honest after an in-place change. */
+  function refreshNavBadges() {
+    const counts = { shortlist: S.shortlist.length, messages: Object.keys(S.threads).length };
+    Object.keys(counts).forEach(tab => {
+      const btn = $('.nav button[data-tab="' + tab + '"]');
+      if (!btn) return;
+      let badge = $('.badge', btn);
+      if (counts[tab]) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'badge';
+          btn.appendChild(badge);
+        }
+        badge.textContent = counts[tab];
+      } else if (badge) {
+        badge.remove();
+      }
+    });
   }
 
   /* The swipe card asks one question: do you like her work. Price, travel and
@@ -810,19 +871,13 @@
         '<div class="view-pad fade-in" style="padding-top:0">' +
           '<div class="hero">' + photoHTML(hero, 900, 1125) +
             '<button class="back" data-back>&#8249;</button></div>' +
-          (creditLine(hero)
-            ? '<p style="font-size:10.5px;color:var(--ink-faint);margin:7px 0 0;text-align:right">' +
-              creditLine(hero) + '</p>'
-            : '') +
+          '<p class="hero-credit">' + creditLine(hero) + '</p>' +
 
           '<div class="shoot-switch">' + D.SHOOTS.map(s =>
             '<button data-dshoot="' + s.key + '" class="' + (s.key === g.shoot ? 'on' : '') + '">' +
             esc(s.label) + '</button>').join('') + '</div>' +
 
-          '<div class="gallery-strip">' + photos.map((ph, i) =>
-            '<div class="g ' + (i === g.index % photos.length ? 'on' : '') + '" data-pick="' + i + '">' +
-            '<img src="' + D.photoURL(ph, 220, 290) + '" alt="" loading="lazy" ' +
-            'style="filter:' + E.photoFilter(ph.axes) + '"></div>').join('') + '</div>' +
+          '<div class="gallery-strip">' + stripHTML(p, g) + '</div>' +
 
           '<h2 class="display" style="font-size:33px;margin-top:20px">' + esc(displayName(p)) + '</h2>' +
           '<p style="font-size:12px;color:var(--ink-faint);margin:5px 0 0;letter-spacing:0.3px">' +
@@ -871,22 +926,62 @@
           // "work" needs to know which photographer to go back to.
           go(from, from === 'work' ? { id: route.params.workId || p.id } : {});
         });
+        /* Swapping the hero photo or saving her changes a couple of elements,
+         * not the screen. Re-rendering threw the scroll position away, which
+         * on a long profile meant a thumbnail tap sent her back to the top. */
+        const swapHero = () => {
+          const list = p.photos.filter(ph => ph.shoot === g.shoot);
+          const shown = list[g.index % list.length];
+          const heroEl = $('.hero .photo');
+          if (heroEl) heroEl.outerHTML = photoHTML(shown, 900, 1125);
+          const credit = $('.hero-credit');
+          if (credit) credit.innerHTML = creditLine(shown);
+          $$('.gallery-strip .g').forEach((el, i) =>
+            el.classList.toggle('on', i === g.index % list.length));
+        };
+
+        const wirePicks = () => {
+          $$('.gallery-strip .g').forEach(b => b.addEventListener('click', () => {
+            g.index = Number(b.dataset.pick);
+            swapHero();
+          }));
+        };
+        wirePicks();
+
         $$('[data-dshoot]').forEach(b => b.addEventListener('click', () => {
-          g.shoot = b.dataset.dshoot; g.index = 0; render();
+          g.shoot = b.dataset.dshoot;
+          g.index = 0;
+          $$('[data-dshoot]').forEach(x => x.classList.toggle('on', x === b));
+          $('.gallery-strip').innerHTML = stripHTML(p, g);
+          wirePicks();
+          swapHero();
         }));
-        $$('[data-pick]').forEach(b => b.addEventListener('click', () => {
-          g.index = Number(b.dataset.pick); render();
-        }));
-        $('[data-shortlist]').addEventListener('click', () => {
+
+        $('[data-shortlist]').addEventListener('click', ev => {
           const i = S.shortlist.indexOf(p.id);
-          if (i >= 0) { S.shortlist.splice(i, 1); delete S.seen[p.id]; toast('Removed'); }
-          else { S.shortlist.unshift(p.id); S.seen[p.id] = 'shortlist'; toast('Saved'); }
-          save(); render();
+          const nowSaved = i < 0;
+          if (nowSaved) { S.shortlist.unshift(p.id); S.seen[p.id] = 'shortlist'; }
+          else { S.shortlist.splice(i, 1); delete S.seen[p.id]; }
+          save();
+          const btn = ev.currentTarget;
+          btn.innerHTML = nowSaved ? '&#9829; Saved' : '&#9825; Save her';
+          btn.classList.toggle('btn--paper', nowSaved);
+          btn.classList.toggle('btn--ghost', !nowSaved);
+          refreshNavBadges();
+          toast(nowSaved ? 'Saved' : 'Removed');
         });
         $('[data-message]').addEventListener('click', () => openThread(p.id));
       },
     };
   };
+
+  function stripHTML(p, g) {
+    const photos = p.photos.filter(ph => ph.shoot === g.shoot);
+    return photos.map((ph, i) =>
+      '<div class="g ' + (i === g.index % photos.length ? 'on' : '') + '" data-pick="' + i + '">' +
+      '<img src="' + D.photoURL(ph, 220, 290) + '" alt="" loading="lazy" ' +
+      'style="filter:' + E.photoFilter(ph.axes) + '"></div>').join('');
+  }
 
   function detailRow(k, v) {
     return '<div class="pr"><span style="color:var(--ink-soft)">' + esc(k) + '</span>' +
@@ -957,13 +1052,25 @@
           '</div>' +
         '</div>',
       mount() {
+        /* Picking who to compare is three taps in a row, so patch the tick
+         * and the button label in place instead of rebuilding the list
+         * under her each time. */
+        const compareBtn = $('[data-compare]');
+        const syncCompare = () => {
+          const n = S.compareSel.filter(id => S.shortlist.includes(id)).length;
+          compareBtn.disabled = n < 2;
+          compareBtn.textContent = n < 2 ? 'Select 2 or 3 to compare' : 'Compare these ' + n;
+        };
+
         $$('[data-sel]').forEach(b => b.addEventListener('click', () => {
           const id = b.dataset.sel;
           const i = S.compareSel.indexOf(id);
           if (i >= 0) S.compareSel.splice(i, 1);
           else if (S.compareSel.length >= 3) { toast('Three is the limit — drop one first'); return; }
           else S.compareSel.push(id);
-          save(); render();
+          b.classList.toggle('on', S.compareSel.indexOf(id) >= 0);
+          save();
+          syncCompare();
         }));
         $$('[data-open]').forEach(b => b.addEventListener('click', () => go('detail', { id: b.dataset.open, from: 'shortlist' })));
         $('[data-compare]').addEventListener('click', () => go('compare'));

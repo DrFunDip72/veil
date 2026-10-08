@@ -169,6 +169,34 @@ async function main() {
       document.querySelector('.mcard-body').textContent)`) === true);
 
   /* Judge the work before committing - the flow that was broken. */
+  /* Saving from the list must not throw her back to the top. A full render
+   * rebuilt the list and reset the scroll, so saving someone she had
+   * scrolled down to moved her away from the one she just picked. */
+  const heartTap = await evaluate(ws, `(async () => {
+    const view = document.querySelector('.view');
+    view.scrollTop = 900;
+    const before = Math.round(view.scrollTop);
+    document.querySelector('.view-pad').dataset.marker = 'kept';
+    const heart = document.querySelector('.mcard-save');
+    heart.click();
+    await new Promise(r => setTimeout(r, 400));
+    return {
+      before,
+      after: Math.round(document.querySelector('.view').scrollTop),
+      rebuilt: !document.querySelector('.view-pad[data-marker="kept"]'),
+      filled: document.querySelector('.mcard-save').classList.contains('on'),
+      badge: (document.querySelector('.nav button[data-tab="shortlist"] .badge') || {}).textContent,
+    };
+  })()`);
+  check('saving does not rebuild the list', heartTap.rebuilt === false);
+  check('saving keeps your place in the list', heartTap.after === heartTap.before,
+    heartTap.before + ' -> ' + heartTap.after);
+  check('the heart fills in place', heartTap.filled === true);
+  check('the Saved tab count updates without a re-render', heartTap.badge === '1', heartTap.badge);
+  // Undo so the later save-count assertions still line up.
+  await evaluate(ws, `document.querySelector('.mcard-save.on').click()`);
+  await sleep(400);
+
   console.log('\nJudging her work before deciding');
   await evaluate(ws, `document.querySelector('.mcard').click()`);
   await sleep(1200);

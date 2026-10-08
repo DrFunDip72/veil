@@ -1102,6 +1102,14 @@ input[type=range] {
   font-size: 17px; color: var(--ink);
   cursor: pointer;
 }
+.hero-credit {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  margin: 7px 0 0;
+  text-align: right;
+  min-height: 14px;
+}
+
 .gallery-strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
